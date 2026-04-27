@@ -28,8 +28,8 @@ export default async function handler(req, res) {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
     if (!payload.sub) throw new Error('No sub in JWT payload');
 
-    const { default: supabase } = await import('@supabase/supabase-js');
-    const sb = supabase.createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     const { error: upsertError } = await sb.from('ob_connections').upsert({
       user_id: payload.sub,
