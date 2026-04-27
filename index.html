@@ -608,7 +608,8 @@ function AISavingsPanel({d}){
       if(!res.ok)throw new Error(await res.text());
       const data=await res.json();
       const raw=(data.content&&data.content[0]&&data.content[0].text)||'';
-      setResult(JSON.parse(raw.trim()));setStatus('done');
+      const jsonStr=raw.trim().replace(/^```json\n?|\n?```$/g,'').trim();
+      setResult(JSON.parse(jsonStr));setStatus('done');
     }catch(e){setErr(e.message||'Error');setStatus('error');}
   };
   const fmt=n=>'\u00a3'+parseFloat(n||0).toFixed(0);
