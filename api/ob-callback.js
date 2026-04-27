@@ -13,8 +13,12 @@ export default async function handler(req, res) {
   const apiUrl = process.env.TRUELAYER_API_URL;
 
   try {
+    console.log('OAuth callback: code received:', code?.substring(0, 20));
+
     // Exchange code for tokens
     const baseUrl = process.env.TRUELAYER_BASE_URL;
+    console.log('Exchanging code with baseUrl:', baseUrl);
+
     const tokenResponse = await fetch(`${baseUrl}/connect/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,18 +31,29 @@ export default async function handler(req, res) {
       }),
     });
 
+    console.log('Token response status:', tokenResponse.status);
+    const tokenData = await tokenResponse.json();
+    console.log('Token data keys:', Object.keys(tokenData));
+
     if (!tokenResponse.ok) {
-      throw new Error('Token exchange failed');
+      console.error('Token exchange failed:', tokenData);
+      throw new Error(`Token exchange failed: ${JSON.stringify(tokenData)}`);
     }
 
-    const tokenData = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = tokenData;
+    console.log('Got tokens, access_token length:', access_token?.length);
 
     // Get user from JWT in access token (TrueLayer embeds user_id in token)
+    const parts = access_token.split('.');
+    console.log('JWT parts:', parts.length);
+
     const tokenPayload = JSON.parse(
-      Buffer.from(access_token.split('.')[1], 'base64').toString()
+      Buffer.from(parts[1], 'base64').toString()
     );
+    console.log('Token payload keys:', Object.keys(tokenPayload));
+
     const userId = tokenPayload.sub; // TrueLayer uses 'sub' for user ID
+    console.log('User ID extracted:', userId);
 
     // Store in Supabase
     const sb = createClient(
@@ -72,7 +87,7 @@ export default async function handler(req, res) {
     // Redirect back to app with success
     res.redirect('/?ob=connected');
   } catch (err) {
-    console.error('OAuth callback error:', err);
-    res.redirect('/?ob=error');
+    console.error('OAuth callback error:', err.message, err.stack);
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 }
