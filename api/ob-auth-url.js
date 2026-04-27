@@ -4,20 +4,45 @@ export default async function handler(req, res) {
   }
 
   const clientId = process.env.TRUELAYER_CLIENT_ID;
+  const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
   const redirectUri = process.env.TRUELAYER_REDIRECT_URI;
+  const baseUrl = process.env.TRUELAYER_BASE_URL;
 
-  if (!clientId || !redirectUri) {
+  if (!clientId || !clientSecret || !redirectUri || !baseUrl) {
     return res.status(500).json({ error: 'Missing TrueLayer config' });
   }
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'accounts transactions balance',
-    state: Math.random().toString(36).substring(7),
-  });
+  try {
+    const payload = {
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: 'info accounts balance',
+      state: Math.random().toString(36).substring(7),
+      data_use_description: 'We will use your transaction data to auto-populate your budget spending',
+      provider_id: 'mock',
+    };
 
-  const authUrl = `https://app.truelayer-sandbox.com/oauth/authorize?${params.toString()}`;
-  res.json({ url: authUrl });
+    console.log('Calling TrueLayer authuri:', { baseUrl, payload });
+
+    const authUriResponse = await fetch(`${baseUrl}/v1/authuri`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const responseData = await authUriResponse.json();
+    console.log('TrueLayer authuri response:', { status: authUriResponse.status, responseData });
+
+    if (!authUriResponse.ok) {
+      throw new Error(`TrueLayer authuri failed: ${authUriResponse.status} - ${JSON.stringify(responseData)}`);
+    }
+
+    const { uri } = responseData;
+    console.log('Auth URI generated:', uri);
+    res.json({ url: uri });
+  } catch (err) {
+    console.error('Auth URL generation error:', err);
+    res.status(500).json({ error: err.message });
+  }
 }
