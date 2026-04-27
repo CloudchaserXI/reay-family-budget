@@ -19,6 +19,6 @@ export default async function handler(req, res) {
     state: Math.random().toString(36).substring(7),
   });
 
-  const authUrl = `${baseUrl}/oauth/authorize?${params.toString()}`;
+  const authUrl = `${baseUrl}/authorize?${params.toString()}`;
   res.json({ url: authUrl });
 }

@@ -14,7 +14,8 @@ export default async function handler(req, res) {
 
   try {
     // Exchange code for tokens
-    const tokenResponse = await fetch(`${apiUrl}/oauth/token`, {
+    const baseUrl = process.env.TRUELAYER_BASE_URL;
+    const tokenResponse = await fetch(`${baseUrl}/connect/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
