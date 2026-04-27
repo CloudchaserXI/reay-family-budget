@@ -39,14 +39,14 @@ export default async function handler(req, res) {
     }
 
     console.log('Full TrueLayer response:', responseData);
-    const { uri } = responseData;
-    if (!uri) {
-      const msg = `No uri in TrueLayer response. Keys: ${Object.keys(responseData).join(', ')}. Full response: ${JSON.stringify(responseData)}`;
+    const authUrl = responseData.result || responseData.uri;
+    if (!authUrl) {
+      const msg = `No auth URL in TrueLayer response. Keys: ${Object.keys(responseData).join(', ')}. Full response: ${JSON.stringify(responseData)}`;
       console.error(msg);
       return res.status(500).json({ error: msg });
     }
-    console.log('Auth URI generated:', uri);
-    res.json({ url: uri });
+    console.log('Auth URL generated:', authUrl);
+    res.json({ url: authUrl });
   } catch (err) {
     console.error('Auth URL generation error:', err);
     res.status(500).json({ error: err.message });
