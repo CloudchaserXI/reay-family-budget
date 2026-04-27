@@ -38,7 +38,12 @@ export default async function handler(req, res) {
       throw new Error(`TrueLayer authuri failed: ${authUriResponse.status} - ${JSON.stringify(responseData)}`);
     }
 
+    console.log('Full TrueLayer response:', responseData);
     const { uri } = responseData;
+    if (!uri) {
+      console.error('No uri in response. Response keys:', Object.keys(responseData));
+      return res.status(500).json({ error: 'No uri in TrueLayer response', response: responseData });
+    }
     console.log('Auth URI generated:', uri);
     res.json({ url: uri });
   } catch (err) {
