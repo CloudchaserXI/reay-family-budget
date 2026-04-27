@@ -1,0 +1,39 @@
+{
+  "folders": [
+    {
+      "name": "Reay Family Budget",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "workbench.colorCustomizations": {
+      "activityBar.background": "#1B3A6B",
+      "titleBar.activeBackground": "#1B3A6B",
+      "titleBar.activeForeground": "#ffffff",
+      "statusBar.background": "#153060"
+    },
+    "workbench.colorTheme": "Dark+",
+    "editor.wordWrap": "on",
+    "liveServer.settings.port": 5500
+  },
+  "extensions": {
+    "recommendations": [
+      "ritwickdey.liveserver",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "eamodio.gitlens"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Open in Browser",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:5500/index.html",
+        "webRoot": "${workspaceFolder}"
+      }
+    ]
+  }
+}
