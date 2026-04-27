@@ -11,7 +11,7 @@
   <!-- iOS PWA support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Reay Family Budget">
+  <meta name="apple-mobile-web-app-title" content="Maverick">
   <link rel="apple-touch-icon" href="/icons/icon-180.png">
 
   <!-- Theme colour (Android chrome bar + Windows taskbar) -->
@@ -24,182 +24,861 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            navy: {
-              50: '#EEF2FB',
-              100: '#D4DFF5',
-              200: '#A9BFEB',
-              300: '#7E9FE0',
-              400: '#537FD6',
-              500: '#2563EB',
-              600: '#1D50C0',
-              700: '#153C90',
-              800: '#1B3A6B',
-              900: '#0F2347'
-            }
-          }
-        }
-      }
-    };
+      theme: { extend: { colors: { navy: { 50:'#EEF2FB',100:'#D4DFF5',200:'#A9BFEB',300:'#7E9FE0',400:'#537FD6',500:'#2563EB',600:'#1D50C0',700:'#153C90',800:'#1B3A6B',900:'#0F2347' } } } }
+    }
   </script>
   <script type="importmap">
   {
     "imports": {
-      "react": "https://esm.sh/react@18.3.1",
-      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.4",
-      "recharts": "https://esm.sh/recharts@2.12.7"
+      "react":                "https://esm.sh/react@18.3.1",
+      "react-dom/client":     "https://esm.sh/react-dom@18.3.1/client",
+      "react/jsx-runtime":    "https://esm.sh/react@18.3.1/jsx-runtime",
+      "@supabase/supabase-js":"https://esm.sh/@supabase/supabase-js@2.45.4",
+      "recharts":             "https://esm.sh/recharts@2.12.7"
     }
   }
   </script>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 0.8s linear infinite; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .fade-in { animation: fadeIn 0.3s ease; }
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spin{animation:spin .8s linear infinite}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .fade-in{animation:fadeIn .3s ease}
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
-  <div id="root"></div>
+<div id="root"></div>
+<script type="module">
+import React,{useState,useEffect,useCallback}from'react';
+import{createRoot}from'react-dom/client';
+import{createClient}from'@supabase/supabase-js';
+import{PieChart,Pie,Cell,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer}from'recharts';
 
-  <script type="module">
-    import React, { useState, useEffect, useCallback } from 'react';
-    import { createRoot } from 'react-dom/client';
-    import { createClient } from '@supabase/supabase-js';
-    import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+const sb=createClient('https://pajlrdnhldmixcxbfqis.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhamxyZG5obGRtaXhjeGJmcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzUwOTAsImV4cCI6MjA5MTQxMTA5MH0.1PhX8qrOHhWB426EeoXrXi-WQBvg9f5tjJUoJeO8DmQ');
 
-    const sb = createClient(
-      'https://pajlrdnhldmixcxbfqis.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhamxyZG5obGRtaXhjeGJmcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzUwOTAsImV4cCI6MjA5MTQxMTA5MH0.1PhX8qrOHhWB426EeoXrXi-WQBvg9f5tjJUoJeO8DmQ'
-    );
+const gbp=n=>`£${(+n||0).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})}`;
+const gbp2=n=>`£${Math.abs(+n||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const pct=(n,d)=>d?`${((n/d)*100).toFixed(0)}%`:'0%';
+const CAT_COLORS={Income:'#10B981',Fixed:'#1B3A6B',Variable:'#3B82F6',Pets:'#F59E0B',Savings:'#8B5CF6'};
+const PIE_COLORS=['#1B3A6B','#3B82F6','#F59E0B','#8B5CF6','#EC4899'];
 
-    const gbp = (n) => `£${(+n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    const gbp2 = (n) => `£${Math.abs(+n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const pct = (n, d) => d ? `${((n / d) * 100).toFixed(0)}%` : '0%';
+function closestWorkingDay25(year,month){
+  const d=new Date(year,month,25);
+  const dow=d.getDay();
+  if(dow===6)d.setDate(24);
+  else if(dow===0)d.setDate(26);
+  return d;
+}
+function toISO(d){return d.toISOString().slice(0,10)}
 
-    // ── Login ──
-    function Login() {
-      const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [error, setError] = useState('');
-      const [loading, setLoading] = useState(false);
+// ── Primitives ────────────────────────────────────────────────────────────────
+function Spinner({sm}){
+  return React.createElement('div',{className:`rounded-full border-4 border-navy-800 border-t-transparent spin ${sm?'w-5 h-5':'w-10 h-10'}`});
+}
+function Badge({children,color='slate'}){
+  const cls={green:'bg-emerald-100 text-emerald-700',red:'bg-red-100 text-red-600',purple:'bg-purple-100 text-purple-700',slate:'bg-slate-100 text-slate-600',navy:'bg-blue-100 text-blue-800',yellow:'bg-amber-100 text-amber-700'}[color]||'bg-slate-100 text-slate-600';
+  return React.createElement('span',{className:`text-xs font-semibold px-2 py-0.5 rounded-full ${cls}`},children);
+}
+function KpiCard({label,value,sub,icon,color='navy'}){
+  const m={green:{ring:'border-emerald-200',val:'text-emerald-600',bg:'bg-emerald-50'},navy:{ring:'border-slate-200',val:'text-navy-800',bg:'bg-blue-50'},blue:{ring:'border-blue-200',val:'text-blue-600',bg:'bg-blue-50'},purple:{ring:'border-purple-200',val:'text-purple-600',bg:'bg-purple-50'},red:{ring:'border-red-200',val:'text-red-600',bg:'bg-red-50'}}[color]||{ring:'border-slate-200',val:'text-slate-800',bg:'bg-slate-50'};
+  return React.createElement('div',{className:`bg-white rounded-2xl border ${m.ring} p-5 shadow-sm flex flex-col gap-1`},
+    React.createElement('div',{className:'flex items-start justify-between'},
+      React.createElement('p',{className:'text-xs font-semibold text-slate-400 uppercase tracking-wide'},label),
+      icon&&React.createElement('div',{className:`w-9 h-9 rounded-xl ${m.bg} flex items-center justify-center text-lg`},icon)
+    ),
+    React.createElement('p',{className:`text-2xl font-bold ${m.val} leading-tight`},value),
+    sub&&React.createElement('p',{className:'text-xs text-slate-400'},sub)
+  );
+}
+function Card({children,className=''}){return React.createElement('div',{className:`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 ${className}`},children)}
 
-      const submit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        const { error: err } = await sb.auth.signInWithPassword({ email: email.trim(), password });
-        if (err) setError(err.message);
-        setLoading(false);
-      };
+// ── Login ─────────────────────────────────────────────────────────────────────
+function Login(){
+  const[email,setEmail]=useState('');
+  const[password,setPassword]=useState('');
+  const[error,setError]=useState('');
+  const[loading,setLoading]=useState(false);
+  const submit=async e=>{
+    e.preventDefault();
+    setLoading(true);setError('');
+    const{error:err}=await sb.auth.signInWithPassword({email:email.trim(),password});
+    if(err)setError(err.message);
+    setLoading(false);
+  };
+  return React.createElement('div',{className:'min-h-screen bg-slate-100 flex items-center justify-center px-4'},
+    React.createElement('div',{className:'bg-white rounded-2xl shadow-lg border border-slate-200 p-8 w-full max-w-sm'},
+      React.createElement('div',{className:'flex items-center gap-3 mb-8'},
+        React.createElement('div',{className:'w-12 h-12 bg-navy-800 rounded-xl flex items-center justify-center text-white text-2xl font-bold'},'R'),
+        React.createElement('div',null,
+          React.createElement('p',{className:'font-bold text-slate-800 text-lg'},'Reay Family'),
+          React.createElement('p',{className:'text-slate-400 text-sm'},'Budget Tracker')
+        )
+      ),
+      React.createElement('form',{onSubmit:submit,className:'space-y-4'},
+        React.createElement('div',null,
+          React.createElement('label',{className:'block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1'},'Email'),
+          React.createElement('input',{type:'email',value:email,onChange:e=>setEmail(e.target.value),required:true,placeholder:'you@example.com',className:'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-300'})
+        ),
+        React.createElement('div',null,
+          React.createElement('label',{className:'block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1'},'Password'),
+          React.createElement('input',{type:'password',value:password,onChange:e=>setPassword(e.target.value),required:true,placeholder:'••••••••',className:'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-300'})
+        ),
+        error&&React.createElement('p',{className:'text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg'},error),
+        React.createElement('button',{type:'submit',disabled:loading,className:'w-full bg-navy-800 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-navy-900 disabled:opacity-50 flex items-center justify-center gap-2'},
+          loading&&React.createElement(Spinner,{sm:true}),
+          loading?'Signing in…':'Sign in'
+        )
+      )
+    )
+  );
+}
 
-      return React.createElement('div', { className: 'min-h-screen bg-slate-100 flex items-center justify-center px-4' },
-        React.createElement('div', { className: 'bg-white rounded-2xl shadow-lg border border-slate-200 p-8 w-full max-w-sm' },
-          React.createElement('div', { className: 'flex items-center gap-3 mb-8' },
-            React.createElement('div', { className: 'w-12 h-12 bg-navy-800 rounded-xl flex items-center justify-center text-white text-2xl font-bold' }, 'R'),
-            React.createElement('div', null,
-              React.createElement('p', { className: 'font-bold text-slate-800 text-lg' }, 'Reay Family'),
-              React.createElement('p', { className: 'text-slate-400 text-sm' }, 'Budget Tracker')
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function Nav({page,setPage,session}){
+  const[open,setOpen]=useState(false);
+  const links=[{id:'dashboard',label:'Dashboard',e:'📊'},{id:'budget',label:'Budget',e:'💰'},{id:'history',label:'History',e:'📅'},{id:'goals',label:'Goals',e:'🎯'}];
+  const go=id=>{setPage(id);setOpen(false)};
+  const initials=(session?.user?.email||'?').slice(0,1).toUpperCase();
+  return React.createElement('nav',{className:'bg-navy-800 text-white sticky top-0 z-50 shadow-lg'},
+    React.createElement('div',{className:'max-w-6xl mx-auto px-4'},
+      React.createElement('div',{className:'flex items-center justify-between h-16'},
+        React.createElement('div',{className:'flex items-center gap-3'},
+          React.createElement('div',{className:'w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl font-bold'},'R'),
+          React.createElement('div',null,
+            React.createElement('p',{className:'font-bold leading-tight'},'Reay Family'),
+            React.createElement('p',{className:'text-blue-300 text-[10px] leading-tight tracking-widest uppercase'},'Budget Tracker')
+          )
+        ),
+        React.createElement('div',{className:'hidden md:flex items-center gap-1'},
+          ...links.map(l=>React.createElement('button',{key:l.id,onClick:()=>go(l.id),className:`px-4 py-2 rounded-xl text-sm font-medium transition-all ${page===l.id?'bg-white/20 text-white':'text-blue-200 hover:bg-white/10 hover:text-white'}`},`${l.e} ${l.label}`))
+        ),
+        React.createElement('div',{className:'flex items-center gap-2'},
+          React.createElement('div',{className:'hidden md:flex items-center gap-2'},
+            React.createElement('div',{className:'w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold'},initials),
+            React.createElement('button',{onClick:()=>sb.auth.signOut(),className:'text-blue-300 hover:text-white text-xs font-medium px-2 py-1 rounded-lg hover:bg-white/10 transition-all'},'Sign out')
+          ),
+          React.createElement('button',{className:'md:hidden p-2 rounded-lg hover:bg-white/10',onClick:()=>setOpen(!open)},open?'✕':'☰')
+        )
+      )
+    ),
+    open&&React.createElement('div',{className:'md:hidden border-t border-white/10 px-4 pb-3 space-y-1'},
+      ...links.map(l=>React.createElement('button',{key:l.id,onClick:()=>go(l.id),className:`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium ${page===l.id?'bg-white/20 text-white':'text-blue-200 hover:bg-white/10'}`},`${l.e} ${l.label}`)),
+      React.createElement('button',{onClick:()=>sb.auth.signOut(),className:'w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-red-300 hover:bg-white/10'},'Sign out')
+    )
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({d}){
+  const{categories,items,months,actuals,monthBudgets,adhocList}=d;
+  const latestMonth=months.length>0?months[months.length-1]:null;
+  const getBudget=itemId=>{
+    if(latestMonth){const mb=monthBudgets.find(b=>b.month_id===latestMonth.id&&b.item_id===itemId);if(mb)return parseFloat(mb.budget_amount);}
+    const it=items.find(i=>i.id===itemId);return it?parseFloat(it.budget_amount):0;
+  };
+  const incomeCats=categories.filter(c=>c.name==='Income');
+  const expenseCats=categories.filter(c=>c.name!=='Income');
+  const adhocTotal=adhocList.filter(a=>latestMonth&&a.month_id===latestMonth.id).reduce((s,a)=>s+parseFloat(a.amount),0);
+  const totalIncome=items.filter(i=>incomeCats.find(c=>c.id===i.category_id)).reduce((s,i)=>s+getBudget(i.id),0)+adhocTotal;
+  const totalExpenses=items.filter(i=>expenseCats.find(c=>c.id===i.category_id)).reduce((s,i)=>s+getBudget(i.id),0);
+  const surplus=totalIncome-totalExpenses;
+  const pieData=expenseCats.map(cat=>({name:cat.name,value:items.filter(i=>i.category_id===cat.id).reduce((s,i)=>s+getBudget(i.id),0)})).filter(d=>d.value>0);
+  const topItems=[...items].filter(i=>expenseCats.find(c=>c.id===i.category_id)).sort((a,b)=>getBudget(b.id)-getBudget(a.id)).slice(0,10);
+  const RADIAN=Math.PI/180;
+  const renderLabel=({cx,cy,midAngle,innerRadius,outerRadius,percent})=>{
+    if(percent<0.06)return null;
+    const r=innerRadius+(outerRadius-innerRadius)*0.5,x=cx+r*Math.cos(-midAngle*RADIAN),y=cy+r*Math.sin(-midAngle*RADIAN);
+    return React.createElement('text',{x,y,fill:'white',textAnchor:'middle',dominantBaseline:'central',fontSize:11,fontWeight:'bold'},`${(percent*100).toFixed(0)}%`);
+  };
+  const catBar=[...categories].sort((a,b)=>a.sort_order-b.sort_order).filter(c=>c.name!=='Income').map(cat=>({name:cat.name,budget:Math.round(items.filter(i=>i.category_id===cat.id).reduce((s,i)=>s+getBudget(i.id),0))}));
+  return React.createElement('div',{className:'space-y-6 fade-in'},
+    React.createElement('div',{className:'flex items-center justify-between'},
+      React.createElement('div',null,
+        React.createElement('h2',{className:'text-xl font-bold text-slate-800'},'Dashboard'),
+        React.createElement('p',{className:'text-slate-400 text-sm mt-0.5'},latestMonth?`Budget figures for ${latestMonth.month_label}`:'Monthly budget at a glance')
+      ),
+      React.createElement('div',{className:'flex items-center gap-2 text-xs text-slate-400'},
+        React.createElement('span',{className:'w-2 h-2 rounded-full bg-emerald-400 inline-block'}),'Live from Supabase'
+      )
+    ),
+    React.createElement('div',{className:'grid grid-cols-2 lg:grid-cols-4 gap-4'},
+      React.createElement(KpiCard,{label:'Monthly Income',value:gbp(totalIncome),sub:adhocTotal>0?`incl. ${gbp(adhocTotal)} additional`:'Salary 1 + Salary 2',icon:'💵',color:'green'}),
+      React.createElement(KpiCard,{label:'Total Outgoings',value:gbp(totalExpenses),sub:'All categories',icon:'💳',color:'blue'}),
+      React.createElement(KpiCard,{label:'Monthly Surplus',value:gbp(surplus),sub:surplus>=0?'In the green ✓':'Over budget ✗',icon:surplus>=0?'✅':'⚠️',color:surplus>=0?'green':'red'}),
+      React.createElement(KpiCard,{label:'Savings Rate',value:pct(surplus,totalIncome),sub:`${gbp(surplus)} retained monthly`,icon:'📈',color:'purple'})
+    ),
+    React.createElement('div',{className:'grid grid-cols-1 lg:grid-cols-2 gap-6'},
+      React.createElement(Card,null,
+        React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Spending by Category'),
+        React.createElement('div',{className:'flex flex-col sm:flex-row items-center gap-6'},
+          React.createElement(ResponsiveContainer,{width:200,height:200},
+            React.createElement(PieChart,null,
+              React.createElement(Pie,{data:pieData,cx:'50%',cy:'50%',innerRadius:55,outerRadius:90,dataKey:'value',paddingAngle:3,labelLine:false,label:renderLabel},
+                ...pieData.map((e,i)=>React.createElement(Cell,{key:i,fill:PIE_COLORS[i%PIE_COLORS.length]}))
+              ),
+              React.createElement(Tooltip,{formatter:v=>[gbp(v),'Budget']})
             )
           ),
-          React.createElement('form', { onSubmit: submit, className: 'space-y-4' },
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1' }, 'Email'),
-              React.createElement('input', {
-                type: 'email',
-                value: email,
-                onChange: (e) => setEmail(e.target.value),
-                required: true,
-                placeholder: 'you@example.com',
-                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-300'
-              })
-            ),
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1' }, 'Password'),
-              React.createElement('input', {
-                type: 'password',
-                value: password,
-                onChange: (e) => setPassword(e.target.value),
-                required: true,
-                placeholder: '••••••••',
-                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-300'
-              })
-            ),
-            error && React.createElement('p', { className: 'text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg' }, error),
-            React.createElement('button', {
-              type: 'submit',
-              disabled: loading,
-              className: 'w-full bg-navy-800 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-navy-900 disabled:opacity-50'
-            }, loading ? 'Signing in…' : 'Sign in')
+          React.createElement('div',{className:'flex flex-col gap-2.5'},
+            ...pieData.map((d,i)=>React.createElement('div',{key:i,className:'flex items-center gap-2.5'},
+              React.createElement('div',{className:'w-3 h-3 rounded-full flex-shrink-0',style:{backgroundColor:PIE_COLORS[i%PIE_COLORS.length]}}),
+              React.createElement('div',null,
+                React.createElement('p',{className:'text-sm font-semibold text-slate-700'},d.name),
+                React.createElement('p',{className:'text-xs text-slate-400'},`${gbp(d.value)} · ${totalExpenses>0?((d.value/totalExpenses)*100).toFixed(0):0}%`)
+              )
+            ))
           )
         )
-      );
-    }
+      ),
+      React.createElement(Card,null,
+        React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Budget by Category'),
+        React.createElement(ResponsiveContainer,{width:'100%',height:220},
+          React.createElement(BarChart,{data:catBar,margin:{top:5,right:10,left:0,bottom:5}},
+            React.createElement(CartesianGrid,{strokeDasharray:'3 3',stroke:'#f1f5f9'}),
+            React.createElement(XAxis,{dataKey:'name',tick:{fontSize:11}}),
+            React.createElement(YAxis,{tick:{fontSize:10},tickFormatter:v=>`£${(v/1000).toFixed(1)}k`}),
+            React.createElement(Tooltip,{formatter:v=>[gbp(v),'Budget']}),
+            React.createElement(Bar,{dataKey:'budget',radius:[6,6,0,0],name:'Budget'},
+              ...catBar.map((e,i)=>React.createElement(Cell,{key:i,fill:CAT_COLORS[e.name]||'#94a3b8'}))
+            )
+          )
+        )
+      )
+    ),
+    React.createElement(Card,null,
+      React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Top 10 Items by Budget'),
+      React.createElement('div',{className:'space-y-2.5'},
+        ...topItems.map(item=>{
+          const cat=categories.find(c=>c.id===item.category_id);
+          const bgt=getBudget(item.id);
+          const maxBgt=getBudget(topItems[0].id);
+          return React.createElement('div',{key:item.id,className:'flex items-center gap-3'},
+            React.createElement('p',{className:'w-32 text-xs text-slate-600 truncate font-medium'},item.name),
+            React.createElement('div',{className:'flex-1 bg-slate-100 rounded-full h-2'},
+              React.createElement('div',{className:'h-2 rounded-full',style:{width:`${maxBgt?((bgt/maxBgt)*100):0}%`,backgroundColor:CAT_COLORS[cat?.name]||'#1B3A6B'}})
+            ),
+            React.createElement('p',{className:'w-20 text-right text-xs font-bold text-slate-600'},gbp2(bgt))
+          );
+        })
+      )
+    ),
+    React.createElement(Card,null,
+      React.createElement('h3',{className:'font-semibold text-slate-700 mb-3'},'Category Summary'),
+      React.createElement('table',{className:'w-full text-sm'},
+        React.createElement('thead',null,
+          React.createElement('tr',{className:'text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100'},
+            React.createElement('th',{className:'text-left pb-2'},'Category'),
+            React.createElement('th',{className:'text-right pb-2'},'Items'),
+            React.createElement('th',{className:'text-right pb-2'},'Budget'),
+            React.createElement('th',{className:'text-right pb-2'},'% of Outgoings')
+          )
+        ),
+        React.createElement('tbody',{className:'divide-y divide-slate-50'},
+          ...[...categories].sort((a,b)=>a.sort_order-b.sort_order).map(cat=>{
+            const catItems=items.filter(i=>i.category_id===cat.id);
+            const total=catItems.reduce((s,i)=>s+getBudget(i.id),0)+(cat.name==='Income'?adhocTotal:0);
+            const isInc=cat.name==='Income';
+            return React.createElement('tr',{key:cat.id,className:'hover:bg-slate-50'},
+              React.createElement('td',{className:'py-2.5'},
+                React.createElement('div',{className:'flex items-center gap-2'},
+                  React.createElement('div',{className:'w-2.5 h-2.5 rounded-full',style:{backgroundColor:CAT_COLORS[cat.name]||'#94a3b8'}}),
+                  React.createElement('span',{className:'font-medium'},cat.name)
+                )
+              ),
+              React.createElement('td',{className:'text-right text-slate-400'},isInc&&adhocTotal>0?`${catItems.length}+`:catItems.length),
+              React.createElement('td',{className:`text-right font-bold ${isInc?'text-emerald-600':'text-slate-700'}`},gbp(total)),
+              React.createElement('td',{className:'text-right text-slate-400'},isInc?'—':`${totalExpenses>0?((total/totalExpenses)*100).toFixed(1):0}%`)
+            );
+          })
+        ),
+        React.createElement('tfoot',null,
+          React.createElement('tr',{className:'border-t-2 border-slate-200'},
+            React.createElement('td',{className:'pt-3 font-bold text-slate-800'},'Net Surplus'),
+            React.createElement('td',{className:'pt-3 text-right text-slate-400'},items.length),
+            React.createElement('td',{className:`pt-3 text-right font-bold text-lg ${surplus>=0?'text-emerald-600':'text-red-500'}`},gbp(surplus)),
+            React.createElement('td',{className:`pt-3 text-right font-bold ${surplus>=0?'text-emerald-600':'text-red-500'}`},pct(surplus,totalIncome))
+          )
+        )
+      )
+    )
+  );
+}
 
-    // ── Dashboard ──
-    function Dashboard() {
-      return React.createElement('div', { className: 'fade-in' },
-        React.createElement('h2', { className: 'text-xl font-bold text-slate-800' }, 'Dashboard'),
-        React.createElement('p', { className: 'text-slate-400 text-sm mt-2' }, 'Overview of your budget and spending')
-      );
-    }
+// ── Budget ────────────────────────────────────────────────────────────────────
+function Budget({d}){
+  const{categories,items,months,actuals,monthBudgets,adhocList,selectedMonth,setSelectedMonth,refresh}=d;
+  const[editActualKey,setEditActualKey]=useState(null);
+  const[editBudgetKey,setEditBudgetKey]=useState(null);
+  const[editVal,setEditVal]=useState('');
+  const[expanded,setExpanded]=useState({});
+  const[addingMonth,setAddingMonth]=useState(false);
+  const[showAddAdhoc,setShowAddAdhoc]=useState(false);
+  const[adhocDesc,setAdhocDesc]=useState('');
+  const[adhocAmt,setAdhocAmt]=useState('');
 
-    // ── App ──
-    function App() {
-      const [session, setSession] = useState(null);
-      const [authLoading, setAuthLoading] = useState(true);
+  const toggle=id=>setExpanded(e=>({...e,[id]:e[id]===false?true:false}));
 
-      useEffect(() => {
-        sb.auth.getSession().then(({ data: { session } }) => {
-          setSession(session);
-          setAuthLoading(false);
-        });
-        const { data: { subscription } } = sb.auth.onAuthStateChange((_, session) => setSession(session));
-        return () => subscription.unsubscribe();
-      }, []);
+  const getBudget=itemId=>{
+    if(selectedMonth){const mb=monthBudgets.find(b=>b.month_id===selectedMonth.id&&b.item_id===itemId);if(mb)return parseFloat(mb.budget_amount);}
+    const it=items.find(i=>i.id===itemId);return it?parseFloat(it.budget_amount):0;
+  };
+  const getActual=itemId=>{
+    if(!selectedMonth)return null;
+    const a=actuals.find(a=>a.month_id===selectedMonth.id&&a.item_id===itemId);
+    return a!=null?parseFloat(a.actual_amount):null;
+  };
 
-      if (authLoading) {
-        return React.createElement('div', { className: 'min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-100' },
-          React.createElement('div', { className: 'w-10 h-10 border-4 border-navy-800 border-t-transparent rounded-full animate-spin' }),
-          React.createElement('p', { className: 'text-slate-500 text-sm' }, 'Loading…')
+  const saveActual=async itemId=>{
+    if(!selectedMonth)return;
+    await sb.from('month_actuals').upsert({month_id:selectedMonth.id,item_id:itemId,actual_amount:parseFloat(editVal)||0},{onConflict:'month_id,item_id'});
+    await refresh();setEditActualKey(null);
+  };
+  const saveBudget=async itemId=>{
+    if(!selectedMonth)return;
+    await sb.from('month_budgets').upsert({month_id:selectedMonth.id,item_id:itemId,budget_amount:parseFloat(editVal)||0},{onConflict:'month_id,item_id'});
+    await refresh();setEditBudgetKey(null);
+  };
+  const saveAdhoc=async()=>{
+    if(!selectedMonth||!adhocDesc.trim())return;
+    await sb.from('month_adhoc_income').insert({month_id:selectedMonth.id,description:adhocDesc.trim(),amount:parseFloat(adhocAmt)||0});
+    await refresh();setAdhocDesc('');setAdhocAmt('');setShowAddAdhoc(false);
+  };
+  const deleteAdhoc=async id=>{
+    await sb.from('month_adhoc_income').delete().eq('id',id);
+    await refresh();
+  };
+
+  const addMonth=async()=>{
+    setAddingMonth(true);
+    const last=months.length>0?months[months.length-1]:null;
+    let ny,nm;
+    if(last){const d=new Date(last.month_date+'T00:00:00');nm=d.getMonth()+1;ny=d.getFullYear();if(nm>11){nm=0;ny++;}}
+    else{const n=new Date();nm=n.getMonth();ny=n.getFullYear();}
+    const startDate=closestWorkingDay25(ny,nm);
+    const monthDate=new Date(ny,nm,1);
+    const label=monthDate.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const{data:newMonth}=await sb.from('budget_months').insert({month_label:label,month_date:toISO(monthDate),start_date:toISO(startDate)}).select().single();
+    // Freeze the closing month — lock in budget_amount for any item without an explicit override
+    if(last){
+      const unset=items.filter(item=>!monthBudgets.find(b=>b.month_id===last.id&&b.item_id===item.id));
+      if(unset.length>0){
+        await sb.from('month_budgets').upsert(
+          unset.map(item=>({month_id:last.id,item_id:item.id,budget_amount:parseFloat(item.budget_amount)})),
+          {onConflict:'month_id,item_id'}
         );
       }
+    }
+    // Copy budgets forward into the new month
+    const entries=items.map(item=>{
+      let amount;
+      if(last){const prev=monthBudgets.find(b=>b.month_id===last.id&&b.item_id===item.id);amount=prev?parseFloat(prev.budget_amount):parseFloat(item.budget_amount);}
+      else amount=parseFloat(item.budget_amount);
+      return{month_id:newMonth.id,item_id:item.id,budget_amount:amount};
+    });
+    await sb.from('month_budgets').insert(entries);
+    await refresh();
+    setAddingMonth(false);
+    setSelectedMonth({...newMonth});
+  };
 
-      if (!session) {
-        return React.createElement(Login);
-      }
+  const adhocForMonth=adhocList.filter(a=>selectedMonth&&a.month_id===selectedMonth.id);
+  const adhocTotal=adhocForMonth.reduce((s,a)=>s+parseFloat(a.amount),0);
+  const totalIncome=items.filter(i=>categories.find(c=>c.id===i.category_id)?.name==='Income').reduce((s,i)=>s+getBudget(i.id),0)+adhocTotal;
+  const totalExpenses=items.filter(i=>categories.find(c=>c.id===i.category_id)?.name!=='Income').reduce((s,i)=>s+getBudget(i.id),0);
+  const surplus=totalIncome-totalExpenses;
+  const startLabel=selectedMonth?.start_date?new Date(selectedMonth.start_date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):null;
+  const last=months.length>0?months[months.length-1]:null;
+  let nextLabel='';
+  if(last){const d=new Date(last.month_date+'T00:00:00');let nm=d.getMonth()+1,ny=d.getFullYear();if(nm>11){nm=0;ny++;}nextLabel=new Date(ny,nm,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});}
+  else nextLabel=new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 
-      return React.createElement('div', { className: 'min-h-screen flex flex-col bg-slate-100' },
-        React.createElement('nav', { className: 'bg-navy-800 text-white shadow-lg' },
-          React.createElement('div', { className: 'max-w-6xl mx-auto px-4 py-4' },
-            React.createElement('p', { className: 'font-bold' }, '🏡 Reay Family Budget')
+  return React.createElement('div',{className:'space-y-4 fade-in'},
+    React.createElement('div',{className:'flex flex-wrap items-center justify-between gap-3'},
+      React.createElement('div',null,
+        React.createElement('h2',{className:'text-xl font-bold text-slate-800'},'Budget'),
+        React.createElement('p',{className:'text-slate-400 text-sm mt-0.5'},selectedMonth?`${selectedMonth.month_label}${startLabel?` · starts ${startLabel}`:''}` :'Select or create a month')
+      ),
+      React.createElement('div',{className:'flex items-center gap-2 flex-wrap'},
+        React.createElement('select',{className:'bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 shadow-sm',value:selectedMonth?.id||'',onChange:e=>setSelectedMonth(months.find(m=>m.id===parseInt(e.target.value))||null)},
+          React.createElement('option',{value:''},'Select month…'),
+          ...[...months].reverse().map(m=>React.createElement('option',{key:m.id,value:m.id},m.month_label))
+        ),
+        React.createElement('button',{onClick:addMonth,disabled:addingMonth,className:'bg-navy-800 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-navy-900 shadow-sm disabled:opacity-50 whitespace-nowrap'},addingMonth?'Adding…':`+ ${nextLabel}`)
+      )
+    ),
+    React.createElement('div',{className:'bg-navy-800 text-white rounded-2xl px-6 py-4 flex flex-wrap gap-8'},
+      React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Income'),React.createElement('p',{className:'text-2xl font-bold text-emerald-300'},gbp(totalIncome))),
+      React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Outgoings'),React.createElement('p',{className:'text-2xl font-bold'},gbp(totalExpenses))),
+      React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Surplus'),React.createElement('p',{className:`text-2xl font-bold ${surplus>=0?'text-emerald-300':'text-red-300'}`},gbp(surplus))),
+      React.createElement('div',{className:'ml-auto flex items-center'},React.createElement('div',{className:'text-right'},React.createElement('p',{className:'text-blue-300 text-xs'},'Savings Rate'),React.createElement('p',{className:'text-xl font-bold'},pct(surplus,totalIncome))))
+    ),
+    selectedMonth&&React.createElement('div',{className:'flex items-center px-5 text-xs font-semibold text-slate-400 uppercase tracking-wide'},
+      React.createElement('div',{className:'flex-1'},'Item'),
+      React.createElement('div',{className:'w-28 text-right'},'Budget'),
+      React.createElement('div',{className:'w-28 text-right'},'Actual'),
+      React.createElement('div',{className:'w-24 text-right'},'Variance')
+    ),
+    ...[...categories].sort((a,b)=>a.sort_order-b.sort_order).map(cat=>{
+      const catItems=items.filter(i=>i.category_id===cat.id);
+      const catBudget=catItems.reduce((s,i)=>s+getBudget(i.id),0)+(cat.name==='Income'?adhocTotal:0);
+      const catActual=selectedMonth?catItems.reduce((s,i)=>{const a=getActual(i.id);return s+(a!=null?a:0)},0)+(cat.name==='Income'?adhocTotal:0):0;
+      const isOpen=expanded[cat.id]!==false;
+      return React.createElement('div',{key:cat.id,className:'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden'},
+        React.createElement('button',{className:'w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors text-left',style:{borderLeft:`4px solid ${CAT_COLORS[cat.name]||'#94a3b8'}`},onClick:()=>toggle(cat.id)},
+          React.createElement('div',{className:'flex items-center gap-3'},
+            React.createElement('span',{className:'font-bold text-slate-800'},cat.name),
+            React.createElement(Badge,{color:'slate'},`${catItems.length}${cat.name==='Income'&&adhocForMonth.length>0?` +${adhocForMonth.length}`:''}`)
+          ),
+          React.createElement('div',{className:'flex items-center gap-6'},
+            React.createElement('span',{className:'font-semibold text-slate-600 hidden sm:block text-sm'},gbp(catBudget)),
+            selectedMonth&&catActual>0&&React.createElement('span',{className:`font-bold text-sm ${catActual<=catBudget||cat.name==='Income'?'text-emerald-600':'text-red-500'}`},gbp(catActual)),
+            React.createElement('span',{className:'text-slate-400 text-xs ml-2'},isOpen?'▲':'▼')
           )
         ),
-        React.createElement('main', { className: 'flex-1 max-w-6xl w-full mx-auto px-4 py-6' },
-          React.createElement(Dashboard)
-        ),
-        React.createElement('footer', { className: 'text-center text-xs text-slate-400 py-3 border-t border-slate-200 bg-white' },
-          '🏡 Reay Family Budget · Built with React + Supabase'
+        isOpen&&React.createElement('div',{className:'divide-y divide-slate-50'},
+          ...catItems.map(item=>{
+            const budget=getBudget(item.id),actual=getActual(item.id),variance=actual!=null?budget-actual:null;
+            const isEditB=editBudgetKey===item.id,isEditA=editActualKey===item.id;
+            return React.createElement('div',{key:item.id,className:'flex items-center px-5 py-2.5 gap-2 hover:bg-slate-50/80 group'},
+              React.createElement('div',{className:'flex-1 text-sm text-slate-700 font-medium'},item.name),
+              selectedMonth
+                ?isEditB
+                  ?React.createElement('div',{className:'w-28 flex justify-end gap-1'},
+                      React.createElement('input',{type:'number',step:'0.01',className:'w-20 border border-purple-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-purple-200',value:editVal,onChange:e=>setEditVal(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveBudget(item.id);if(e.key==='Escape')setEditBudgetKey(null)},autoFocus:true}),
+                      React.createElement('button',{onClick:()=>saveBudget(item.id),className:'text-purple-600 hover:text-purple-700 font-bold'},'✓')
+                    )
+                  :React.createElement('div',{className:'w-28 text-right text-sm cursor-pointer rounded-lg px-2 py-1 hover:bg-purple-50 hover:text-purple-700',title:'Click to edit budget',onClick:()=>{setEditBudgetKey(item.id);setEditActualKey(null);setEditVal(budget)}},React.createElement('span',{className:'font-semibold'},gbp2(budget)))
+                :React.createElement('div',{className:'w-28 text-right text-sm text-slate-500'},gbp2(budget)),
+              selectedMonth&&(isEditA
+                ?React.createElement('div',{className:'w-28 flex justify-end gap-1'},
+                    React.createElement('input',{type:'number',step:'0.01',className:'w-20 border border-blue-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-200',value:editVal,onChange:e=>setEditVal(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveActual(item.id);if(e.key==='Escape')setEditActualKey(null)},autoFocus:true}),
+                    React.createElement('button',{onClick:()=>saveActual(item.id),className:'text-emerald-600 hover:text-emerald-700 font-bold'},'✓')
+                  )
+                :React.createElement('div',{className:'w-28 text-right text-sm cursor-pointer rounded-lg px-2 py-1 hover:bg-blue-50 hover:text-blue-700',onClick:()=>{setEditActualKey(item.id);setEditBudgetKey(null);setEditVal(actual!=null?actual:'')}},
+                    actual!=null?React.createElement('span',{className:'font-semibold'},gbp2(actual)):React.createElement('span',{className:'text-slate-300 text-xs group-hover:text-blue-400'},'tap to enter')
+                  )
+              ),
+              variance!=null&&React.createElement('div',{className:`w-24 text-right text-sm font-bold ${variance>=0?'text-emerald-500':'text-red-500'}`},`${variance>=0?'+':''}${gbp2(variance)}`)
+            );
+          }),
+          // Additional income entries (Income category only)
+          cat.name==='Income'&&selectedMonth&&React.createElement(React.Fragment,null,
+            ...adhocForMonth.map(entry=>React.createElement('div',{key:entry.id,className:'flex items-center px-5 py-2.5 gap-2 hover:bg-slate-50/80 group'},
+              React.createElement('div',{className:'flex-1 text-sm text-emerald-700 font-medium flex items-center gap-1.5'},
+                React.createElement('span',{className:'text-xs text-emerald-500 font-bold bg-emerald-50 px-1.5 py-0.5 rounded'},'+ extra'),
+                entry.description
+              ),
+              React.createElement('div',{className:'w-28 text-right text-sm font-semibold text-emerald-600'},gbp2(entry.amount)),
+              React.createElement('div',{className:'w-28 text-right text-sm font-semibold text-emerald-600'},gbp2(entry.amount)),
+              React.createElement('div',{className:'w-24 text-right'}),
+              React.createElement('button',{onClick:()=>deleteAdhoc(entry.id),className:'text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-xs'},'✕')
+            )),
+            React.createElement('div',{className:'px-5 py-2.5'},
+              showAddAdhoc
+                ?React.createElement('div',{className:'flex gap-2'},
+                    React.createElement('input',{type:'text',placeholder:'Description e.g. Bonus, Overtime',className:'flex-1 border border-emerald-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200',value:adhocDesc,onChange:e=>setAdhocDesc(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveAdhoc();if(e.key==='Escape')setShowAddAdhoc(false)},autoFocus:true}),
+                    React.createElement('input',{type:'number',step:'0.01',placeholder:'£ Amount',className:'w-28 border border-emerald-300 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-200',value:adhocAmt,onChange:e=>setAdhocAmt(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveAdhoc();if(e.key==='Escape')setShowAddAdhoc(false)}}),
+                    React.createElement('button',{onClick:saveAdhoc,className:'bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700'},'✓'),
+                    React.createElement('button',{onClick:()=>setShowAddAdhoc(false),className:'bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-sm'},'✗')
+                  )
+                :React.createElement('button',{onClick:()=>setShowAddAdhoc(true),className:'text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors'},'+ Add additional income')
+            )
+          )
         )
       );
-    }
+    }),
+    !selectedMonth&&React.createElement(Card,{className:'text-center py-8'},
+      React.createElement('p',{className:'text-4xl mb-3'},'📅'),
+      React.createElement('p',{className:'text-slate-600 font-medium'},'No month selected'),
+      React.createElement('p',{className:'text-slate-400 text-sm mt-1'},'Select an existing month or click the button above to add a new one')
+    )
+  );
+}
 
-    createRoot(document.getElementById('root')).render(React.createElement(App));
-  </script>
+// ── History ───────────────────────────────────────────────────────────────────
+function History({d}){
+  const{categories,items,months,actuals,monthBudgets,adhocList}=d;
+  const expenseCats=categories.filter(c=>c.name!=='Income');
+  const incomeCats=categories.filter(c=>c.name==='Income');
+  const getBudgetForMonth=(mId,iId)=>{const mb=monthBudgets.find(b=>b.month_id===mId&&b.item_id===iId);if(mb)return parseFloat(mb.budget_amount);const it=items.find(i=>i.id===iId);return it?parseFloat(it.budget_amount):0;};
+  const monthStats=months.map(m=>{
+    const ma=actuals.filter(a=>a.month_id===m.id);
+    const adhoc=adhocList.filter(a=>a.month_id===m.id).reduce((s,a)=>s+parseFloat(a.amount),0);
+    const income=items.filter(i=>incomeCats.find(c=>c.id===i.category_id)).reduce((s,i)=>{const a=ma.find(a=>a.item_id===i.id);return s+(a?+a.actual_amount:getBudgetForMonth(m.id,i.id))},0)+adhoc;
+    const expenses=items.filter(i=>expenseCats.find(c=>c.id===i.category_id)).reduce((s,i)=>{const a=ma.find(a=>a.item_id===i.id);return s+(a?+a.actual_amount:getBudgetForMonth(m.id,i.id))},0);
+    return{id:m.id,label:m.month_label,income,expenses,surplus:income-expenses,hasActuals:ma.length>0};
+  });
+  const catData=months.map(m=>{
+    const ma=actuals.filter(a=>a.month_id===m.id);
+    const row={name:m.month_label};
+    expenseCats.forEach(cat=>{row[cat.name]=items.filter(i=>i.category_id===cat.id).reduce((s,i)=>{const a=ma.find(a=>a.item_id===i.id);return s+(a?+a.actual_amount:getBudgetForMonth(m.id,i.id))},0);});
+    return row;
+  });
+  return React.createElement('div',{className:'space-y-6 fade-in'},
+    React.createElement('div',null,React.createElement('h2',{className:'text-xl font-bold text-slate-800'},'History'),React.createElement('p',{className:'text-slate-400 text-sm mt-0.5'},'Month by month overview')),
+    months.length===0
+      ?React.createElement(Card,null,React.createElement('div',{className:'text-center py-8'},React.createElement('p',{className:'text-4xl mb-3'},'📅'),React.createElement('p',{className:'text-slate-600 font-medium'},'No months yet')))
+      :React.createElement(React.Fragment,null,
+          React.createElement(Card,null,
+            React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Income vs Expenses'),
+            React.createElement(ResponsiveContainer,{width:'100%',height:260},
+              React.createElement(BarChart,{data:monthStats,margin:{top:5,right:10,left:0,bottom:5}},
+                React.createElement(CartesianGrid,{strokeDasharray:'3 3',stroke:'#f1f5f9'}),
+                React.createElement(XAxis,{dataKey:'label',tick:{fontSize:12}}),
+                React.createElement(YAxis,{tick:{fontSize:10},tickFormatter:v=>`£${(v/1000).toFixed(1)}k`}),
+                React.createElement(Tooltip,{formatter:v=>gbp(v)}),
+                React.createElement(Legend),
+                React.createElement(Bar,{dataKey:'income',fill:'#10B981',radius:[4,4,0,0],name:'Income'}),
+                React.createElement(Bar,{dataKey:'expenses',fill:'#1B3A6B',radius:[4,4,0,0],name:'Expenses'}),
+                React.createElement(Bar,{dataKey:'surplus',fill:'#8B5CF6',radius:[4,4,0,0],name:'Surplus'})
+              )
+            )
+          ),
+          React.createElement(Card,null,
+            React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Spending Breakdown by Category'),
+            React.createElement(ResponsiveContainer,{width:'100%',height:260},
+              React.createElement(BarChart,{data:catData,margin:{top:5,right:10,left:0,bottom:5}},
+                React.createElement(CartesianGrid,{strokeDasharray:'3 3',stroke:'#f1f5f9'}),
+                React.createElement(XAxis,{dataKey:'name',tick:{fontSize:12}}),
+                React.createElement(YAxis,{tick:{fontSize:10},tickFormatter:v=>`£${(v/1000).toFixed(1)}k`}),
+                React.createElement(Tooltip,{formatter:v=>gbp(v)}),
+                React.createElement(Legend),
+                ...expenseCats.map(cat=>React.createElement(Bar,{key:cat.id,dataKey:cat.name,fill:CAT_COLORS[cat.name]||'#94a3b8',stackId:'a'}))
+              )
+            )
+          ),
+          React.createElement('div',{className:'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'},
+            ...[...monthStats].reverse().map(m=>React.createElement(Card,{key:m.id},
+              React.createElement('div',{className:'flex items-start justify-between mb-4'},
+                React.createElement('div',null,React.createElement('h3',{className:'font-bold text-slate-800 text-lg'},m.label),React.createElement('p',{className:'text-xs text-slate-400 mt-0.5'},m.hasActuals?'Actuals recorded':'Budget estimates')),
+                React.createElement(Badge,{color:m.surplus>=0?'green':'red'},m.surplus>=0?'✓ On track':'⚠ Over')
+              ),
+              React.createElement('div',{className:'space-y-2.5'},
+                React.createElement('div',{className:'flex justify-between text-sm'},React.createElement('span',{className:'text-slate-500'},'Income'),React.createElement('span',{className:'font-semibold text-emerald-600'},gbp(m.income))),
+                React.createElement('div',{className:'flex justify-between text-sm'},React.createElement('span',{className:'text-slate-500'},'Expenses'),React.createElement('span',{className:'font-semibold text-slate-700'},gbp(m.expenses))),
+                React.createElement('div',{className:'pt-2 border-t border-slate-100 flex justify-between text-sm'},React.createElement('span',{className:'font-medium text-slate-600'},'Surplus'),React.createElement('span',{className:`font-bold ${m.surplus>=0?'text-emerald-600':'text-red-500'}`},`${m.surplus>=0?'+':''}${gbp(m.surplus)}`))
+              )
+            ))
+          )
+        )
+  );
+}
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function (r) { console.log('SW registered:', r.scope); })
-          .catch(function (e) { console.log('SW registration failed:', e); });
-      });
-    }
-  </script>
+// ── Goals ─────────────────────────────────────────────────────────────────────
+const GRADES={
+  1:{label:'Must',         short:'Must',         bg:'bg-red-100',    text:'text-red-700',    border:'border-red-300',    ring:'ring-red-400'},
+  2:{label:'Should',       short:'Should',       bg:'bg-amber-100',  text:'text-amber-700',  border:'border-amber-300',  ring:'ring-amber-400'},
+  3:{label:'Could',        short:'Could',        bg:'bg-blue-100',   text:'text-blue-700',   border:'border-blue-300',   ring:'ring-blue-400'},
+  4:{label:'Nice to have', short:'Nice to have', bg:'bg-slate-100',  text:'text-slate-500',  border:'border-slate-300',  ring:'ring-slate-400'},
+};
+
+
+// ── AI Savings Panel ─────────────────────────────────────────────────────
+function AISavingsPanel({d}){
+  const{categories,items,actuals,monthBudgets,adhocList,goals,selectedMonth}=d;
+  const[status,setStatus]=useState('idle');
+  const[result,setResult]=useState(null);
+  const[err,setErr]=useState('');
+  const[dismissed,setDismissed]=useState(false);
+  if(!selectedMonth||dismissed)return null;
+  const buildPrompt=()=>{
+    const mid=selectedMonth.id;
+    const getIB=item=>{const ov=monthBudgets.find(mb=>mb.month_id===mid&&mb.item_id===item.id);return parseFloat(ov?ov.budget_amount:item.budget_amount)||0;};
+    const getA=item=>{const a=actuals.find(ac=>ac.month_id===mid&&ac.item_id===item.id);return a?parseFloat(a.actual_amount)||0:null;};
+    const ic=categories.find(c=>c.name==='Income');
+    const ii=ic?items.filter(i=>i.category_id===ic.id):[];
+    const ib=ii.reduce((s,i)=>s+getIB(i),0);
+    const ia=ii.reduce((s,i)=>{const a=getA(i);return s+(a!==null?a:getIB(i));},0);
+    const at=adhocList.filter(a=>a.month_id===mid).reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+    const oc=categories.filter(c=>c.name!=='Income');
+    const cl=oc.map(c=>{const ci=items.filter(i=>i.category_id===c.id);const bud=ci.reduce((s,i)=>s+getIB(i),0);const av=ci.map(i=>getA(i)).filter(v=>v!==null);const act=av.length>0?av.reduce((s,v)=>s+v,0):null;return c.name+' budget='+bud.toFixed(0)+(act!==null?' actual='+act.toFixed(0):'');}).join(', ');
+    const ob=oc.reduce((s,c)=>s+items.filter(i=>i.category_id===c.id).reduce((ss,i)=>ss+getIB(i),0),0);
+    const oa=oc.reduce((s,c)=>s+items.filter(i=>i.category_id===c.id).reduce((ss,i)=>{const a=getA(i);return ss+(a!==null?a:getIB(i));},0),0);
+    const gfi=items.find(i=>i.name==='Goals Funding');
+    const gfa=gfi?getIB(gfi):0;
+    const GL={1:'MUST',2:'SHOULD',3:'COULD',4:'NICE'};
+    const gl=goals.filter(g=>g.is_active!==false).sort((a,b)=>(a.priority||2)-(b.priority||2)).map(g=>{const p=g.target_amount>0?Math.round((parseFloat(g.current_amount)/parseFloat(g.target_amount))*100):0;const mo=g.target_date?Math.max(0,Math.round((new Date(g.target_date)-new Date())/2592000000)):-1;return (g.emoji||'')+' '+g.name+' ['+GL[g.priority||2]+'] saved='+parseFloat(g.current_amount).toFixed(0)+' target='+parseFloat(g.target_amount).toFixed(0)+' pct='+p+(mo>=0?' months='+mo:'');}).join(', ');
+    return 'Month='+selectedMonth.month_label+' IncomeBudget='+ib.toFixed(0)+' IncomeActual='+ia.toFixed(0)+(at>0?' AdhocIncome='+at.toFixed(0):'')+' Categories: '+cl+' OutgoingsBudget='+ob.toFixed(0)+' OutgoingsActual='+oa.toFixed(0)+' SurplusBudget='+(ib+at-ob).toFixed(0)+' SurplusActual='+(ia+at-oa).toFixed(0)+' GoalsFunding='+gfa.toFixed(0)+' Goals: '+gl+' Task: Split the '+gfa.toFixed(0)+' Goals Funding across the goals. Return ONLY valid JSON with no markdown: {"headline":"one sentence","suggestions":[{"goal":"name","amount":0,"reason":"one sentence"}],"total":0,"rationale":"2-3 sentences"}';
+  };
+  const generate=async()=>{
+    setStatus('loading');setErr('');
+    try{
+      const res=await fetch('/api/ai-savings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:buildPrompt(),system:'You are a friendly personal finance advisor for the Reay family. Respond ONLY with valid JSON - no markdown fences.'})});
+      if(!res.ok)throw new Error(await res.text());
+      const data=await res.json();
+      const raw=(data.content&&data.content[0]&&data.content[0].text)||'';
+      const jsonStr=raw.trim().replace(/^```json\n?|\n?```$/g,'').trim();
+      setResult(JSON.parse(jsonStr));setStatus('done');
+    }catch(e){setErr(e.message||'Error');setStatus('error');}
+  };
+  const fmt=n=>'\u00a3'+parseFloat(n||0).toFixed(0);
+  if(status==='idle')return React.createElement('div',{className:'bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between gap-4'},
+    React.createElement('div',{className:'flex items-center gap-3'},React.createElement('span',{className:'text-2xl'},'\u2728'),React.createElement('div',null,React.createElement('p',{className:'font-semibold text-slate-800 text-sm'},'AI Savings Suggestions'),React.createElement('p',{className:'text-slate-500 text-xs mt-0.5'},'Personalised goal split for '+selectedMonth.month_label))),
+    React.createElement('div',{className:'flex items-center gap-2'},React.createElement('button',{onClick:generate,className:'bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors'},'Generate'),React.createElement('button',{onClick:()=>setDismissed(true),className:'text-slate-400 hover:text-slate-600 text-xs px-2 transition-colors'},'Dismiss'))
+  );
+  if(status==='loading')return React.createElement('div',{className:'bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-6 flex items-center justify-center gap-3'},React.createElement(Spinner),React.createElement('p',{className:'text-indigo-700 font-medium text-sm'},'Analysing '+selectedMonth.month_label+'...'));
+  if(status==='error')return React.createElement('div',{className:'bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between gap-4'},React.createElement('p',{className:'text-red-700 text-sm'},'Error: '+err),React.createElement('div',{className:'flex gap-2'},React.createElement('button',{onClick:generate,className:'text-sm text-red-600 underline'},'Retry'),React.createElement('button',{onClick:()=>setDismissed(true),className:'text-sm text-slate-400 underline'},'Dismiss')));
+  const{headline,suggestions,total,rationale}=result;
+  const sugg=suggestions||[];
+  return React.createElement('div',{className:'bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-5 space-y-4'},
+    React.createElement('div',{className:'flex items-start justify-between gap-4'},React.createElement('div',{className:'flex items-center gap-2'},React.createElement('span',{className:'text-xl'},'\u2728'),React.createElement('h3',{className:'font-semibold text-slate-800 text-sm'},'AI Suggestions - '+selectedMonth.month_label)),React.createElement('div',{className:'flex gap-2'},React.createElement('button',{onClick:generate,className:'text-indigo-400 hover:text-indigo-700 text-xs'},'Refresh'),React.createElement('button',{onClick:()=>setDismissed(true),className:'text-slate-400 hover:text-slate-600 text-xs'},'Dismiss'))),
+    React.createElement('p',{className:'text-slate-700 text-sm italic'},headline),
+    React.createElement('div',{className:'space-y-2'},sugg.map((s,i)=>React.createElement('div',{key:i,className:'flex items-start justify-between gap-3 bg-white rounded-lg px-4 py-3 border border-indigo-100'},React.createElement('div',null,React.createElement('p',{className:'font-semibold text-slate-800 text-sm'},s.goal),React.createElement('p',{className:'text-slate-500 text-xs mt-0.5'},s.reason)),React.createElement('span',{className:'font-bold text-indigo-700 text-sm whitespace-nowrap'},fmt(s.amount))))),
+    total&&React.createElement('div',{className:'flex justify-between text-sm font-semibold text-slate-700 border-t border-indigo-100 pt-3'},React.createElement('span',null,'Total'),React.createElement('span',{className:'text-indigo-700'},fmt(total))),
+    rationale&&React.createElement('p',{className:'text-slate-500 text-xs border-t border-indigo-100 pt-3'},rationale)
+  );
+}
+function Goals({d}){
+  const{goals,refresh}=d;
+  const[showNew,setShowNew]=useState(false);
+  const[editingId,setEditingId]=useState(null);
+  const[form,setForm]=useState({});
+  const[saving,setSaving]=useState(false);
+  const[confirmDelete,setConfirmDelete]=useState(null);
+
+  const totalSaved=goals.reduce((s,g)=>s+parseFloat(g.current_amount),0);
+  const totalTarget=goals.reduce((s,g)=>s+parseFloat(g.target_amount),0);
+  const overall=totalTarget>0?(totalSaved/totalTarget)*100:0;
+
+  const openNew=()=>{setForm({emoji:'🎯',name:'',target:'',current:'0',date:'',priority:2});setShowNew(true);setEditingId(null);};
+  const openEdit=g=>{setForm({emoji:g.emoji||'🎯',name:g.name,target:g.target_amount,current:g.current_amount,date:g.target_date||'',priority:g.priority||2});setEditingId(g.id);setShowNew(false);};
+  const cancel=()=>{setShowNew(false);setEditingId(null);setForm({});};
+
+  const saveNew=async()=>{
+    if(!form.name?.trim())return;
+    setSaving(true);
+    await sb.from('budget_goals').insert({name:form.name.trim(),target_amount:parseFloat(form.target)||0,current_amount:parseFloat(form.current)||0,emoji:form.emoji||'🎯',target_date:form.date||null,priority:form.priority||2,sort_order:goals.length+1});
+    await refresh();setSaving(false);cancel();
+  };
+  const saveEdit=async()=>{
+    setSaving(true);
+    await sb.from('budget_goals').update({name:form.name?.trim()||'Goal',target_amount:parseFloat(form.target)||0,current_amount:parseFloat(form.current)||0,emoji:form.emoji||'🎯',target_date:form.date||null,priority:form.priority||2}).eq('id',editingId);
+    await refresh();setSaving(false);cancel();
+  };
+  const deleteGoal=async id=>{
+    setSaving(true);
+    await sb.from('budget_goals').delete().eq('id',id);
+    await refresh();setSaving(false);setConfirmDelete(null);
+  };
+
+  const GoalForm=({onSave,label})=>React.createElement(Card,{className:'border-blue-200 fade-in'},
+    React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},label),
+    React.createElement('div',{className:'grid grid-cols-1 sm:grid-cols-2 gap-3'},
+      React.createElement('div',{className:'sm:col-span-2 flex gap-2'},
+        React.createElement('input',{placeholder:'Emoji',className:'w-16 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-center',value:form.emoji||'',onChange:e=>setForm({...form,emoji:e.target.value})}),
+        React.createElement('input',{placeholder:'Goal name',className:'flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-300',value:form.name||'',onChange:e=>setForm({...form,name:e.target.value}),autoFocus:true})
+      ),
+      React.createElement('input',{type:'number',placeholder:'Target amount £',className:'border border-slate-200 rounded-xl px-3 py-2.5 text-sm',value:form.target||'',onChange:e=>setForm({...form,target:e.target.value})}),
+      React.createElement('input',{type:'number',placeholder:'Amount saved so far £',className:'border border-slate-200 rounded-xl px-3 py-2.5 text-sm',value:form.current||'',onChange:e=>setForm({...form,current:e.target.value})}),
+      React.createElement('div',{className:'sm:col-span-2'},
+        React.createElement('label',{className:'block text-xs text-slate-400 mb-1'},'Target date (optional)'),
+        React.createElement('input',{type:'date',className:'border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 w-full',value:form.date||'',onChange:e=>setForm({...form,date:e.target.value})})
+      ),
+      React.createElement('div',{className:'sm:col-span-2'},
+        React.createElement('label',{className:'block text-xs text-slate-400 mb-2'},'Priority'),
+        React.createElement('div',{className:'grid grid-cols-4 gap-1.5'},
+          [1,2,3,4].map(v=>{
+            const g=GRADES[v];
+            const active=(form.priority||2)===v;
+            return React.createElement('button',{
+              key:v,type:'button',
+              onClick:()=>setForm({...form,priority:v}),
+              className:`py-2 rounded-xl text-xs font-semibold border transition-colors ${active?`${g.bg} ${g.text} ${g.border} ring-1 ring-inset ${g.ring}`:'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`
+            },g.label);
+          })
+        )
+      )
+    ),
+    React.createElement('div',{className:'flex gap-2 mt-4'},
+      React.createElement('button',{onClick:onSave,disabled:saving,className:'bg-navy-800 text-white px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-50'},saving?'Saving…':label),
+      React.createElement('button',{onClick:cancel,className:'bg-slate-100 text-slate-600 px-5 py-2 rounded-xl text-sm'},'Cancel')
+    )
+  );
+
+  return React.createElement('div',{className:'space-y-6 fade-in'},
+    React.createElement(AISavingsPanel,{d}),
+    React.createElement('div',{className:'flex items-center justify-between'},
+      React.createElement('div',null,React.createElement('h2',{className:'text-xl font-bold text-slate-800'},'Goals'),React.createElement('p',{className:'text-slate-400 text-sm mt-0.5'},'Savings targets & progress')),
+      !showNew&&!editingId&&React.createElement('button',{onClick:openNew,className:'bg-navy-800 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-navy-900 shadow-sm'},'+ Add Goal')
+    ),
+    React.createElement('div',{className:'bg-navy-800 text-white rounded-2xl p-5'},
+      React.createElement('div',{className:'flex flex-wrap items-start justify-between gap-4 mb-4'},
+        React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Total Saved'),React.createElement('p',{className:'text-3xl font-bold mt-1'},gbp(totalSaved)),React.createElement('p',{className:'text-blue-300 text-sm'},`of ${gbp(totalTarget)} target`)),
+        React.createElement('div',{className:'text-right'},React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Goals'),React.createElement('p',{className:'text-2xl font-bold mt-1'},goals.length),React.createElement('p',{className:'text-blue-300 text-sm'},`${goals.filter(g=>g.current_amount>=g.target_amount).length} completed`))
+      ),
+      React.createElement('div',{className:'bg-white/20 rounded-full h-3 overflow-hidden'},
+        React.createElement('div',{className:'h-3 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300',style:{width:`${Math.min(overall,100)}%`}})
+      ),
+      React.createElement('p',{className:'text-blue-300 text-xs mt-1.5'},`${overall.toFixed(1)}% of total goal achieved`)
+    ),
+    showNew&&React.createElement(GoalForm,{onSave:saveNew,label:'Save Goal'}),
+    goals.length===0&&!showNew&&React.createElement(Card,null,
+      React.createElement('div',{className:'text-center py-6'},
+        React.createElement('p',{className:'text-3xl mb-2'},'🎯'),
+        React.createElement('p',{className:'text-slate-600 font-medium'},'No goals yet'),
+        React.createElement('p',{className:'text-slate-400 text-sm mt-1'},'Click + Add Goal to set your first savings target')
+      )
+    ),
+    ...[1,2,3,4].map(grade=>{
+      const gradeGoals=goals.filter(g=>(g.priority||2)===grade);
+      if(gradeGoals.length===0&&!goals.some(g=>(g.priority||2)===grade))return null;
+      if(gradeGoals.length===0)return null;
+      const g=GRADES[grade];
+      return React.createElement('div',{key:grade,className:'space-y-3'},
+        React.createElement('div',{className:'flex items-center gap-2'},
+          React.createElement('span',{className:`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-lg ${g.bg} ${g.text} border ${g.border}`},`${grade}. ${g.label}`),
+          React.createElement('div',{className:'flex-1 h-px bg-slate-100'})
+        ),
+        React.createElement('div',{className:'grid grid-cols-1 sm:grid-cols-2 gap-4'},
+          ...gradeGoals.map(goal=>{
+            const prog=goal.target_amount>0?Math.min((goal.current_amount/goal.target_amount)*100,100):0;
+            const rem=Math.max(parseFloat(goal.target_amount)-parseFloat(goal.current_amount),0);
+            const isEditing=editingId===goal.id;
+            if(isEditing)return React.createElement('div',{key:goal.id,className:'sm:col-span-2'},React.createElement(GoalForm,{onSave:saveEdit,label:'Save Changes'}));
+            return React.createElement(Card,{key:goal.id},
+              React.createElement('div',{className:'flex items-start gap-3 mb-4'},
+                React.createElement('div',{className:'w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0'},goal.emoji||'🎯'),
+                React.createElement('div',{className:'flex-1 min-w-0'},
+                  React.createElement('h3',{className:'font-bold text-slate-800'},goal.name),
+                  React.createElement('div',{className:'flex flex-wrap items-center gap-2 mt-0.5'},
+                    goal.target_date&&React.createElement('p',{className:'text-xs text-slate-400'},`By ${new Date(goal.target_date).toLocaleDateString('en-GB',{month:'short',year:'numeric'})}`),
+                    rem>0&&React.createElement(Badge,{color:'navy'},`${gbp(rem)} to go`)
+                  )
+                ),
+                React.createElement('span',{className:`text-lg font-bold ${prog>=100?'text-emerald-500':'text-navy-700'}`},`${prog.toFixed(0)}%`)
+              ),
+              React.createElement('div',{className:'bg-slate-100 rounded-full h-3 mb-3 overflow-hidden'},
+                React.createElement('div',{className:'h-3 rounded-full transition-all',style:{width:`${prog}%`,background:prog>=100?'#10B981':'linear-gradient(90deg,#1B3A6B,#2563EB)'}})
+              ),
+              React.createElement('div',{className:'flex justify-between text-sm mb-4'},
+                React.createElement('div',null,React.createElement('p',{className:'text-xs text-slate-400'},'Saved'),React.createElement('p',{className:'font-bold text-emerald-600'},gbp(goal.current_amount))),
+                React.createElement('div',{className:'text-right'},React.createElement('p',{className:'text-xs text-slate-400'},'Target'),React.createElement('p',{className:'font-bold text-slate-700'},gbp(goal.target_amount)))
+              ),
+              confirmDelete===goal.id
+                ?React.createElement('div',{className:'flex gap-2 items-center bg-red-50 rounded-xl p-3'},
+                    React.createElement('p',{className:'flex-1 text-sm text-red-700 font-medium'},'Delete this goal?'),
+                    React.createElement('button',{onClick:()=>deleteGoal(goal.id),className:'bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium'},'Delete'),
+                    React.createElement('button',{onClick:()=>setConfirmDelete(null),className:'bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-sm'},'Cancel')
+                  )
+                :React.createElement('div',{className:'flex gap-2'},
+                    React.createElement('button',{onClick:()=>openEdit(goal),className:'flex-1 text-sm font-medium text-navy-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl py-2 transition-colors'},'✏ Edit'),
+                    React.createElement('button',{onClick:()=>setConfirmDelete(goal.id),className:'text-sm font-medium text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl py-2 px-3 transition-colors'},'✕')
+                  )
+            );
+          })
+        )
+      );
+    })
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
+// ── Privacy ──────────────────────────────────────────────────────────────
+function Privacy({onBack}){
+  const Card=({children})=>React.createElement('div',{className:'bg-white rounded-xl border border-slate-200 p-6 shadow-sm'},children);
+  const Section=({title,children})=>React.createElement('div',{className:'mb-8'},React.createElement('h3',{className:'text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100'},title),React.createElement('div',{className:'text-sm text-slate-600 space-y-2 leading-relaxed'},children));
+  const P=({children})=>React.createElement('p',null,children);
+  const Ul=({items})=>React.createElement('ul',{className:'list-disc pl-5 space-y-1.5'},items.map((t,i)=>React.createElement('li',{key:i},t)));
+  return React.createElement('div',{className:'space-y-6'},
+    React.createElement('div',{className:'flex items-center gap-3'},
+      React.createElement('button',{onClick:onBack,className:'text-slate-400 hover:text-slate-700 transition-colors'},React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',fill:'none',viewBox:'0 0 24 24',strokeWidth:2,stroke:'currentColor',className:'w-5 h-5'},React.createElement('path',{strokeLinecap:'round',strokeLinejoin:'round',d:'M15.75 19.5L8.25 12l7.5-7.5'}))),
+      React.createElement('h2',{className:'text-xl font-bold text-slate-800'},'Privacy & Data Policy')
+    ),
+    React.createElement(Card,null,
+      React.createElement('p',{className:'text-xs text-slate-400 mb-6'},'Last updated: April 2026 \u00b7 Applies to: Reay Family Budget'),
+      React.createElement(Section,{title:'1. Who we are'},React.createElement(P,null,'This app is a private family budgeting tool operated by Jarryd Reay for personal use by two authorised family members.'),React.createElement(P,null,'Data controller: Jarryd Reay \u00b7 Contact: reay11@gmail.com')),
+      React.createElement(Section,{title:'2. What data we hold'},React.createElement(P,null,'The app currently stores:'),React.createElement(Ul,{items:['Monthly budget figures - income, outgoings, and savings amounts entered manually','Actual spending figures - amounts entered manually against each budget category','Savings goals - name, target, current amount, deadline, and priority grade','Your email address and authentication credentials (managed by Supabase Auth)']}),React.createElement(P,null,'When Open Banking connects, it will also store:'),React.createElement(Ul,{items:['Bank transaction descriptions and amounts','Category mappings - how transactions map to budget categories','Open Banking consent tokens - time-limited credentials (no passwords stored)']})),
+      React.createElement(Section,{title:'3. Why we hold it'},React.createElement(P,null,'All data is held solely to power the budgeting, goal-tracking, and spending analysis features.')),
+      React.createElement(Section,{title:'4. Legal basis (UK GDPR)'},React.createElement(P,null,'The legal basis is legitimate interests - personal financial management of the Reay family household.')),
+      React.createElement(Section,{title:'5. Where data is stored'},React.createElement(Ul,{items:['Supabase (PostgreSQL) - AWS eu-west-2 (London). Encrypted at rest and in transit.','Vercel (web hosting) - static files only.','Anthropic Claude API (future) - anonymised budget summaries only.','Open Banking provider (future) - regulated UK provider, read-only access.']})),
+      React.createElement(Section,{title:'6. How long we keep it'},React.createElement(Ul,{items:['Transaction data (actuals) - rolling 2-year window; older data deleted each January.','Budget configuration - retained indefinitely.','Savings goals - retained until manually deleted.','Open Banking tokens (future) - auto-expire after 90 days.']})),
+      React.createElement(Section,{title:'7. Access and security'},React.createElement(P,null,'Access is restricted to two authorised email addresses. Supabase Row Level Security is in place.')),
+      React.createElement(Section,{title:'8. Your rights (UK GDPR)'},React.createElement(P,null,'You have the right to access, deletion, rectification, portability, and objection. Contact reay11@gmail.com.')),
+      React.createElement(Section,{title:'9. Changes to this policy'},React.createElement(P,null,'This policy will be updated before any new data processing activity begins.'))
+    )
+  );
+}
+function App(){
+  const[page,setPage]=useState('dashboard');
+  const[authLoading,setAuthLoading]=useState(true);
+  const[session,setSession]=useState(null);
+  const[loading,setLoading]=useState(true);
+  const[categories,setCategories]=useState([]);
+  const[items,setItems]=useState([]);
+  const[months,setMonths]=useState([]);
+  const[actuals,setActuals]=useState([]);
+  const[monthBudgets,setMonthBudgets]=useState([]);
+  const[adhocList,setAdhocList]=useState([]);
+  const[goals,setGoals]=useState([]);
+  const[selectedMonth,setSelectedMonth]=useState(null);
+
+  useEffect(()=>{
+    sb.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoading(false);});
+    const{data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>setSession(session));
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  const refresh=useCallback(async()=>{
+    const[c,i,m,a,mb,g,ai]=await Promise.all([
+      sb.from('budget_categories').select('*').order('sort_order'),
+      sb.from('budget_items').select('*').order('sort_order'),
+      sb.from('budget_months').select('*').order('month_date'),
+      sb.from('month_actuals').select('*'),
+      sb.from('month_budgets').select('*'),
+      sb.from('budget_goals').select('*').order('sort_order'),
+      sb.from('month_adhoc_income').select('*').order('created_at'),
+    ]);
+    setCategories(c.data||[]);setItems(i.data||[]);setMonths(m.data||[]);
+    setActuals(a.data||[]);setMonthBudgets(mb.data||[]);setGoals(g.data||[]);setAdhocList(ai.data||[]);
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{if(session)refresh();else setLoading(false);},[session]);
+
+  useEffect(()=>{
+    if(!loading&&months.length>0&&!selectedMonth)setSelectedMonth(months[months.length-1]);
+  },[loading,months]);
+
+  if(authLoading)return React.createElement('div',{className:'min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-100'},React.createElement(Spinner),React.createElement('p',{className:'text-slate-500 text-sm'},'Loading…'));
+  if(!session)return React.createElement(Login);
+
+  const shared={categories,items,months,actuals,monthBudgets,adhocList,goals,selectedMonth,setSelectedMonth,refresh};
+
+  if(loading)return React.createElement('div',{className:'min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-100'},
+    React.createElement(Spinner),React.createElement('p',{className:'text-slate-600 font-medium'},'Loading Reay Family Budget…')
+  );
+
+  return React.createElement('div',{className:'min-h-screen flex flex-col'},
+    React.createElement(Nav,{page,setPage,session}),
+    React.createElement('main',{className:'flex-1 max-w-6xl w-full mx-auto px-4 py-6'},
+      page==='dashboard'&&React.createElement(Dashboard,{d:shared}),
+      page==='budget'&&React.createElement(Budget,{d:shared}),
+      page==='history'&&React.createElement(History,{d:shared}),
+      page==='goals'&&React.createElement(Goals,{d:shared}),
+      page==='privacy'&&React.createElement(Privacy,{onBack:()=>setPage('dashboard')})
+    ),
+    React.createElement('footer',{className:'text-center text-xs text-slate-400 py-3 border-t border-slate-200 bg-white flex items-center justify-center gap-3'},
+      React.createElement('span',null,'\uD83C\uDFE1 Reay Family Budget \u00b7 Built with React + Supabase'),
+      React.createElement('span',{className:'text-slate-200'},'|'),
+      React.createElement('button',{onClick:()=>setPage('privacy'),className:'hover:text-slate-600 underline underline-offset-2 transition-colors'},'Privacy & Data Policy')
+    )
+  );
+}
+
+createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(r){console.log('SW registered:',r.scope);})
+        .catch(function(e){console.log('SW registration failed:',e);});
+    });
+  }
+</script>
+
 </body>
 </html>
