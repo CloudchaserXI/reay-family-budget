@@ -28,6 +28,9 @@ export default async function handler(req, res) {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
     if (!payload.sub) throw new Error('No sub in JWT payload');
 
+    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');
+    console.log('Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET (' + process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20) + '...)' : 'MISSING');
+
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
