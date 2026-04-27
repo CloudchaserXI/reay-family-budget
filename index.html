@@ -54,7 +54,7 @@ import React,{useState,useEffect,useCallback}from'react';
 import{createRoot}from'react-dom/client';
 import{createClient}from'@supabase/supabase-js';
 import{PieChart,Pie,Cell,BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer}from'recharts';
-
+console.log('Script loaded');
 const sb=createClient('https://pajlrdnhldmixcxbfqis.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhamxyZG5obGRtaXhjeGJmcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzUwOTAsImV4cCI6MjA5MTQxMTA5MH0.1PhX8qrOHhWB426EeoXrXi-WQBvg9f5tjJUoJeO8DmQ');
 
 const gbp=n=>`£${(+n||0).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})}`;
