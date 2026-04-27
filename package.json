@@ -3,5 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "build": "echo 'static site, no build needed'" }
+  "scripts": { "build": "echo 'static site, no build needed'" },
+  "dependencies": { "@supabase/supabase-js": "^2.45.4" }
 }
