@@ -18,7 +18,14 @@
       --color-slate-800: #1e293b;
       --color-red-50: #fef2f2;
       --color-red-200: #fecaca;
+      --color-red-600: #dc2626;
       --color-red-700: #b91c1c;
+      --color-green-50: #f0fdf4;
+      --color-green-200: #bbf7d0;
+      --color-green-600: #16a34a;
+      --color-blue-50: #eff6ff;
+      --color-blue-200: #bfdbfe;
+      --color-purple-600: #9333ea;
       --color-white: #ffffff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,6 +39,7 @@
     .flex { display: flex; }
     .flex-col { flex-direction: column; }
     .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
     .justify-center { justify-content: center; }
     .justify-between { justify-content: space-between; }
     .gap-4 { gap: 1rem; }
@@ -40,28 +48,39 @@
     .space-y-6 > * + * { margin-top: 1.5rem; }
     .px-4 { padding-left: 1rem; padding-right: 1rem; }
     .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
     .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
     .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
     .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
     .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
     .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
     .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+    .p-6 { padding: 1.5rem; }
     .p-8 { padding: 2rem; }
     .mb-1 { margin-bottom: 0.25rem; }
+    .mb-3 { margin-bottom: 0.75rem; }
+    .mb-4 { margin-bottom: 1rem; }
     .mb-8 { margin-bottom: 2rem; }
     .mt-2 { margin-top: 0.5rem; }
     .text-xs { font-size: 0.75rem; }
     .text-sm { font-size: 0.875rem; }
+    .text-lg { font-size: 1.125rem; }
     .text-xl { font-size: 1.25rem; }
     .text-2xl { font-size: 1.5rem; }
+    .text-3xl { font-size: 1.875rem; }
     .font-bold { font-weight: bold; }
     .font-semibold { font-weight: 600; }
+    .font-medium { font-weight: 500; }
     .uppercase { text-transform: uppercase; }
     .w-full { width: 100%; }
+    .w-24 { width: 6rem; }
     .bg-white { background-color: var(--color-white); }
     .bg-slate-100 { background-color: var(--color-slate-100); }
     .bg-slate-800 { background-color: var(--color-slate-800); }
     .bg-red-50 { background-color: var(--color-red-50); }
+    .bg-green-50 { background-color: var(--color-green-50); }
+    .bg-blue-50 { background-color: var(--color-blue-50); }
     .bg-blue-600 { background-color: var(--color-blue-600); }
     .bg-blue-700 { background-color: var(--color-blue-700); }
     .text-slate-400 { color: var(--color-slate-400); }
@@ -69,19 +88,37 @@
     .text-slate-600 { color: var(--color-slate-600); }
     .text-slate-700 { color: var(--color-slate-700); }
     .text-slate-800 { color: var(--color-slate-800); }
+    .text-slate-900 { color: #0f172a; }
     .text-white { color: var(--color-white); }
+    .text-red-600 { color: var(--color-red-600); }
     .text-red-700 { color: var(--color-red-700); }
+    .text-green-600 { color: var(--color-green-600); }
+    .text-blue-600 { color: var(--color-blue-600); }
+    .text-blue-900 { color: #1e3a8a; }
+    .text-purple-600 { color: var(--color-purple-600); }
     .border { border: 1px solid var(--color-slate-200); }
+    .border-t { border-top: 1px solid var(--color-slate-200); }
+    .border-b { border-bottom: 1px solid var(--color-slate-200); }
+    .border-blue-200 { border-color: var(--color-blue-200); }
     .border-slate-200 { border-color: var(--color-slate-200); }
+    .border-slate-100 { border-color: #f2f2f2; }
     .border-red-200 { border-color: var(--color-red-200); }
-    .rounded-xl { border-radius: 0.75rem; }
+    .rounded { border-radius: 0.25rem; }
     .rounded-lg { border-radius: 0.5rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-full { border-radius: 9999px; }
     .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
     .hover\:bg-blue-700:hover { background-color: var(--color-blue-700); }
+    .hover\:text-blue-800:hover { color: #1e40af; }
+    .hover\:bg-slate-50:hover { background-color: var(--color-slate-50); }
     .disabled\:opacity-50:disabled { opacity: 0.5; }
-    input, button { font: inherit; }
-    input:focus { outline: 2px solid var(--color-blue-600); outline-offset: 0; }
+    .float-right { float: right; }
+    input, button, select { font: inherit; }
+    input:focus, select:focus { outline: 2px solid var(--color-blue-600); outline-offset: 0; }
     button { cursor: pointer; }
+    table { border-collapse: collapse; }
+    th, td { text-align: left; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen">
@@ -142,7 +179,7 @@
                 onChange: (e) => setEmail(e.target.value),
                 required: true,
                 placeholder: 'you@example.com',
-                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
+                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm'
               })
             ),
             React.createElement('div', null,
@@ -153,7 +190,7 @@
                 onChange: (e) => setPassword(e.target.value),
                 required: true,
                 placeholder: '••••••••',
-                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
+                className: 'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm'
               })
             ),
             error && React.createElement('div', { className: 'bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm' }, error),
@@ -167,16 +204,316 @@
       );
     }
 
-    function Dashboard() {
+    function Dashboard({ data }) {
+      if (!data.months || !data.months.length) return React.createElement('div', { className: 'text-slate-600' }, 'Loading...');
+
+      const currentMonth = data.months[data.months.length - 1];
+      const monthBudgets = data.monthBudgets.filter(m => m.month_id === currentMonth.id);
+
+      const calculateMetrics = () => {
+        let income = 0, expenses = 0;
+        data.items.forEach(item => {
+          const catName = data.categories.find(c => c.id === item.category_id)?.name;
+          const budget = monthBudgets.find(m => m.item_id === item.id)?.budget_amount || item.budget_amount;
+          if (catName === 'Income') income += budget;
+          else if (catName !== 'Savings') expenses += budget;
+        });
+        return { income, expenses, surplus: income - expenses, savingsRate: income > 0 ? ((income - expenses) / income * 100).toFixed(1) : 0 };
+      };
+
+      const { income, expenses, surplus, savingsRate } = calculateMetrics();
+
+      const KpiCard = ({ label, value, color }) =>
+        React.createElement('div', { className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6' },
+          React.createElement('p', { className: 'text-slate-600 text-sm font-semibold mb-2' }, label),
+          React.createElement('p', { className: `text-3xl font-bold ${color}` }, `£${typeof value === 'number' ? value.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : value}`)
+        );
+
       return React.createElement('div', { className: 'space-y-6' },
-        React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, 'Dashboard'),
-        React.createElement('p', { className: 'text-slate-600' }, 'Welcome to your family budget tracker')
+        React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, `Dashboard — ${currentMonth.month_label}`),
+        React.createElement('div', { className: 'grid gap-4', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' } },
+          KpiCard({ label: 'Income', value: income, color: 'text-green-600' }),
+          KpiCard({ label: 'Outgoings', value: expenses, color: 'text-red-600' }),
+          KpiCard({ label: 'Surplus', value: surplus, color: 'text-blue-600' }),
+          KpiCard({ label: 'Savings Rate', value: savingsRate + '%', color: 'text-purple-600' })
+        ),
+        React.createElement('div', { className: 'grid gap-6', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' } },
+          React.createElement('div', { className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-4' }, 'Budget by Category'),
+            React.createElement('div', { className: 'space-y-3' },
+              data.categories.filter(c => c.name !== 'Income').map(cat => {
+                const catItems = data.items.filter(i => i.category_id === cat.id);
+                const catBudget = catItems.reduce((s, i) => s + (monthBudgets.find(m => m.item_id === i.id)?.budget_amount || i.budget_amount), 0);
+                return React.createElement('div', { key: cat.id, className: 'flex justify-between items-center pb-2 border-b border-slate-100' },
+                  React.createElement('span', { className: 'text-slate-700 font-medium' }, cat.name),
+                  React.createElement('span', { className: 'text-slate-600 font-semibold' }, `£${catBudget.toFixed(2)}`)
+                );
+              })
+            )
+          )
+        )
+      );
+    }
+
+    function Budget({ data, onSave }) {
+      if (!data.months || !data.months.length) return React.createElement('div', null, 'Loading...');
+
+      const [selectedMonth, setSelectedMonth] = useState(data.months[data.months.length - 1].id);
+      const [edits, setEdits] = useState({});
+      const currentMonth = data.months.find(m => m.id === selectedMonth);
+      const monthBudgets = data.monthBudgets.filter(m => m.month_id === selectedMonth);
+
+      const handleChange = (itemId, field, value) => {
+        const key = `${itemId}-${field}`;
+        setEdits({ ...edits, [key]: parseFloat(value) || 0 });
+      };
+
+      const handleSave = async () => {
+        for (const [key, value] of Object.entries(edits)) {
+          const [itemId, field] = key.split('-');
+          if (field === 'budget') {
+            const existing = monthBudgets.find(m => m.item_id === parseInt(itemId));
+            if (existing) {
+              await sb.from('month_budgets').update({ budget_amount: value }).eq('id', existing.id);
+            } else {
+              await sb.from('month_budgets').insert({ month_id: selectedMonth, item_id: parseInt(itemId), budget_amount: value });
+            }
+          }
+        }
+        setEdits({});
+        onSave && onSave();
+      };
+
+      return React.createElement('div', { className: 'space-y-6' },
+        React.createElement('div', { className: 'flex justify-between items-center' },
+          React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, 'Budget'),
+          React.createElement('select', {
+            value: selectedMonth,
+            onChange: (e) => setSelectedMonth(parseInt(e.target.value)),
+            className: 'border border-slate-200 rounded-lg px-3 py-2'
+          },
+            data.months.map(m => React.createElement('option', { key: m.id, value: m.id }, m.month_label))
+          )
+        ),
+        data.categories.filter(c => c.name !== 'Income').map(cat => {
+          const catItems = data.items.filter(i => i.category_id === cat.id).sort((a, b) => a.sort_order - b.sort_order);
+          return React.createElement('div', { key: cat.id, className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6' },
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-4' }, cat.name),
+            React.createElement('table', { className: 'w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { className: 'border-b border-slate-200' },
+                  React.createElement('th', { className: 'text-left py-2 px-3 font-semibold text-slate-700' }, 'Item'),
+                  React.createElement('th', { className: 'text-right py-2 px-3 font-semibold text-slate-700' }, 'Budget')
+                )
+              ),
+              React.createElement('tbody', null,
+                catItems.map(item => {
+                  const budget = edits[`${item.id}-budget`] !== undefined ? edits[`${item.id}-budget`] : (monthBudgets.find(m => m.item_id === item.id)?.budget_amount || item.budget_amount);
+                  return React.createElement('tr', { key: item.id, className: 'border-b border-slate-100 hover:bg-slate-50' },
+                    React.createElement('td', { className: 'py-3 px-3 text-slate-800' }, item.name),
+                    React.createElement('td', { className: 'text-right py-3 px-3' },
+                      React.createElement('input', {
+                        type: 'number',
+                        step: '0.01',
+                        value: budget.toFixed(2),
+                        onChange: (e) => handleChange(item.id, 'budget', e.target.value),
+                        className: 'w-24 border border-slate-200 rounded px-2 py-1 text-right text-sm'
+                      })
+                    )
+                  );
+                })
+              )
+            )
+          );
+        }),
+        Object.keys(edits).length > 0 && React.createElement('button', {
+          onClick: handleSave,
+          className: 'bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700'
+        }, 'Save Changes')
+      );
+    }
+
+    function History({ data }) {
+      if (!data.months || !data.months.length) return React.createElement('div', null, 'Loading...');
+
+      const monthlyData = data.months.map(month => {
+        let income = 0, expenses = 0;
+        const monthBudgets = data.monthBudgets.filter(m => m.month_id === month.id);
+        data.items.forEach(item => {
+          const catName = data.categories.find(c => c.id === item.category_id)?.name;
+          const budget = monthBudgets.find(m => m.item_id === item.id)?.budget_amount || item.budget_amount;
+          if (catName === 'Income') income += budget;
+          else if (catName !== 'Savings') expenses += budget;
+        });
+        return { month: month.month_label, income, expenses, surplus: income - expenses };
+      });
+
+      return React.createElement('div', { className: 'space-y-6' },
+        React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, 'History'),
+        React.createElement('div', { className: 'grid gap-6', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' } },
+          monthlyData.map(m => React.createElement('div', { key: m.month, className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6' },
+            React.createElement('p', { className: 'text-slate-600 text-sm font-semibold mb-4' }, m.month),
+            React.createElement('div', { className: 'space-y-3' },
+              React.createElement('div', { className: 'flex justify-between border-b border-slate-100 pb-2' },
+                React.createElement('span', { className: 'text-slate-700' }, 'Income'),
+                React.createElement('span', { className: 'font-semibold text-green-600' }, `£${m.income.toFixed(2)}`)
+              ),
+              React.createElement('div', { className: 'flex justify-between border-b border-slate-100 pb-2' },
+                React.createElement('span', { className: 'text-slate-700' }, 'Expenses'),
+                React.createElement('span', { className: 'font-semibold text-red-600' }, `£${m.expenses.toFixed(2)}`)
+              ),
+              React.createElement('div', { className: 'flex justify-between pt-2' },
+                React.createElement('span', { className: 'text-slate-700 font-semibold' }, 'Surplus'),
+                React.createElement('span', { className: 'font-bold text-blue-600' }, `£${m.surplus.toFixed(2)}`)
+              )
+            )
+          ))
+        )
+      );
+    }
+
+    function Goals({ data }) {
+      const [aiSuggestion, setAiSuggestion] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      const generateSuggestion = async () => {
+        setLoading(true);
+        try {
+          const currentMonth = data.months[data.months.length - 1];
+          const monthBudgets = data.monthBudgets.filter(m => m.month_id === currentMonth.id);
+          let income = 0;
+          data.items.forEach(item => {
+            const catName = data.categories.find(c => c.id === item.category_id)?.name;
+            if (catName === 'Income') income += monthBudgets.find(m => m.item_id === item.id)?.budget_amount || item.budget_amount;
+          });
+
+          const prompt = `Financial advisor: allocate £${income.toFixed(2)} income across these goals:\n${data.goals.map(g => `${g.emoji} ${g.name}: £${g.target_amount} target, £${g.current_amount} saved, priority ${g.priority_grade}`).join('\n')}\n\nRespond with JSON: {allocations: {name: amount}, rationale: "explanation"}`;
+
+          const res = await fetch('/api/ai-savings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, system: 'Be a practical financial advisor.' })
+          });
+
+          if (!res.ok) {
+            setAiSuggestion({ error: 'ANTHROPIC_API_KEY not set in Vercel — Add it via dashboard' });
+            setLoading(false);
+            return;
+          }
+
+          const result = await res.json();
+          const content = result.content?.[0]?.text || '';
+          try {
+            const json = JSON.parse(content.match(/\{[\s\S]*\}/)[0]);
+            setAiSuggestion(json);
+          } catch (e) {
+            setAiSuggestion({ rationale: content });
+          }
+        } catch (e) {
+          setAiSuggestion({ error: e.message });
+        }
+        setLoading(false);
+      };
+
+      const gradeLabels = ['Must', 'Should', 'Could', 'Nice to have'];
+
+      return React.createElement('div', { className: 'space-y-6' },
+        React.createElement('div', { className: 'flex justify-between items-center' },
+          React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, 'Goals'),
+          React.createElement('button', {
+            onClick: generateSuggestion,
+            disabled: loading,
+            className: 'bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50'
+          }, loading ? 'Generating...' : '✨ AI Suggestion')
+        ),
+        aiSuggestion && React.createElement('div', { className: 'bg-blue-50 border border-blue-200 rounded-xl p-6' },
+          React.createElement('h3', { className: 'text-lg font-semibold text-blue-900 mb-3' }, 'AI Savings Suggestion'),
+          aiSuggestion.error
+            ? React.createElement('p', { className: 'text-red-600' }, aiSuggestion.error)
+            : React.createElement('p', { className: 'text-slate-700' }, aiSuggestion.rationale),
+          aiSuggestion.allocations && React.createElement('div', { className: 'mt-4 space-y-2 border-t border-blue-200 pt-4' },
+            Object.entries(aiSuggestion.allocations).map(([name, amt]) =>
+              React.createElement('div', { key: name, className: 'flex justify-between text-slate-700' },
+                React.createElement('span', null, name),
+                React.createElement('span', { className: 'font-semibold' }, `£${(amt || 0).toFixed(2)}`)
+              )
+            )
+          )
+        ),
+        React.createElement('div', { className: 'grid gap-4', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' } },
+          data.goals.map(goal => {
+            const progress = Math.min((goal.current_amount / goal.target_amount) * 100, 100);
+            return React.createElement('div', { key: goal.id, className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6' },
+              React.createElement('div', { className: 'flex items-start justify-between mb-3' },
+                React.createElement('div', null,
+                  React.createElement('h3', { className: 'text-lg font-semibold text-slate-800' }, `${goal.emoji} ${goal.name}`),
+                  React.createElement('span', { className: 'text-xs font-semibold text-slate-500 uppercase' }, gradeLabels[goal.priority_grade - 1])
+                )
+              ),
+              React.createElement('div', { className: 'w-full bg-slate-200 rounded-full h-2 mb-3' },
+                React.createElement('div', { className: 'bg-blue-600 h-2 rounded-full', style: { width: progress + '%' } })
+              ),
+              React.createElement('div', { className: 'text-sm text-slate-600 space-y-1' },
+                React.createElement('div', null, `£${goal.current_amount.toFixed(2)} / £${goal.target_amount.toFixed(2)}`),
+                React.createElement('div', null, `${Math.round(progress)}% complete`)
+              ),
+              goal.target_date && React.createElement('p', { className: 'text-xs text-slate-500 mt-3' }, `Target: ${new Date(goal.target_date).toLocaleDateString()}`)
+            );
+          })
+        )
+      );
+    }
+
+    function Privacy() {
+      return React.createElement('div', { className: 'space-y-6 max-w-4xl' },
+        React.createElement('h2', { className: 'text-2xl font-bold text-slate-800' }, 'Privacy & Data Retention'),
+        React.createElement('div', { className: 'bg-white rounded-xl shadow-lg border border-slate-200 p-6 space-y-6' },
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '1. Data We Collect'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'This budget tool processes financial data including income, expenses, goals, and monthly actuals. All data is stored in our Supabase database and secured with encryption in transit.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '2. How We Use Your Data'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'Your data is used exclusively to provide the budget tracking service. We may use historical spending data to generate AI-powered savings suggestions, but this analysis is performed only when you explicitly request it.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '3. Data Retention'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'We retain actual spending data (month_actuals) for 24 months rolling. Budget data and goals are retained indefinitely to maintain your historical record. You may request deletion of older data at any time.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '4. Your Rights Under UK GDPR'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'You have the right to: access your data, correct inaccuracies, request deletion, restrict processing, and export your data in a portable format. Contact reay11@gmail.com to exercise these rights.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '5. Third-Party Services'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'This tool uses Supabase (database hosting) and Anthropic (for AI analysis). Both services are GDPR-compliant and process data only as directed.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '6. Security'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'All data in transit is encrypted with TLS. Authentication is handled by Supabase Auth with email/password. We recommend using a strong, unique password.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '7. Cookies & Local Storage'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'This app does not use cookies or local storage for tracking. Session authentication tokens are managed securely by Supabase Auth.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '8. Changes to This Policy'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'We may update this policy to reflect changes in law or our practices. Material changes will be announced to users.')
+          ),
+          React.createElement('section', null,
+            React.createElement('h3', { className: 'text-lg font-semibold text-slate-800 mb-3' }, '9. Contact'),
+            React.createElement('p', { className: 'text-slate-700 leading-relaxed' }, 'For privacy questions, contact reay11@gmail.com.')
+          )
+        )
       );
     }
 
     function App() {
       const [session, setSession] = useState(null);
       const [loading, setLoading] = useState(true);
+      const [page, setPage] = useState('dashboard');
+      const [data, setData] = useState({ categories: [], items: [], months: [], actuals: [], monthBudgets: [], goals: [] });
+      const [dataLoading, setDataLoading] = useState(true);
 
       useEffect(() => {
         const init = async () => {
@@ -195,10 +532,40 @@
           setSession(session);
         });
 
-        return () => {
-          subscription?.unsubscribe();
-        };
+        return () => subscription?.unsubscribe();
       }, []);
+
+      useEffect(() => {
+        if (!session) return;
+
+        const loadData = async () => {
+          try {
+            const [categories, items, months, actuals, monthBudgets, goals] = await Promise.all([
+              sb.from('budget_categories').select('*').order('sort_order'),
+              sb.from('budget_items').select('*'),
+              sb.from('budget_months').select('*').order('month_date'),
+              sb.from('month_actuals').select('*'),
+              sb.from('month_budgets').select('*'),
+              sb.from('budget_goals').select('*').order('sort_order')
+            ]);
+
+            setData({
+              categories: categories.data || [],
+              items: items.data || [],
+              months: months.data || [],
+              actuals: actuals.data || [],
+              monthBudgets: monthBudgets.data || [],
+              goals: goals.data || []
+            });
+          } catch (e) {
+            console.error('Data load error:', e);
+          } finally {
+            setDataLoading(false);
+          }
+        };
+
+        loadData();
+      }, [session]);
 
       if (loading) {
         return React.createElement('div', { className: 'min-h-screen flex flex-col items-center justify-center bg-slate-100' },
@@ -210,18 +577,45 @@
         return React.createElement(Login);
       }
 
+      const NavLink = ({ label, key: pageKey, icon }) =>
+        React.createElement('button', {
+          onClick: () => setPage(pageKey),
+          className: `px-4 py-2 rounded-lg font-medium transition ${page === pageKey ? 'bg-blue-700 text-white' : 'text-white hover:bg-blue-700'}`
+        }, `${icon} ${label}`);
+
+      const pageContent = () => {
+        if (dataLoading) return React.createElement('div', { className: 'text-slate-600 py-8' }, 'Loading data...');
+        switch (page) {
+          case 'dashboard': return React.createElement(Dashboard, { data });
+          case 'budget': return React.createElement(Budget, { data, onSave: () => window.location.reload() });
+          case 'history': return React.createElement(History, { data });
+          case 'goals': return React.createElement(Goals, { data });
+          case 'privacy': return React.createElement(Privacy);
+          default: return null;
+        }
+      };
+
       return React.createElement('div', { className: 'min-h-screen flex flex-col bg-slate-100' },
         React.createElement('nav', { className: 'bg-blue-600 text-white shadow-lg' },
-          React.createElement('div', { className: 'max-w-6xl mx-auto px-4 py-4 flex justify-between items-center' },
-            React.createElement('h1', { className: 'text-xl font-bold' }, '🏡 Reay Family Budget'),
-            React.createElement('button', {
-              onClick: () => sb.auth.signOut(),
-              className: 'text-white text-sm hover:bg-blue-700 px-3 py-1 rounded'
-            }, 'Sign out')
+          React.createElement('div', { className: 'max-w-6xl mx-auto px-4 py-4' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+              React.createElement('h1', { className: 'text-xl font-bold' }, '🏡 Reay Family Budget'),
+              React.createElement('button', {
+                onClick: () => sb.auth.signOut(),
+                className: 'text-white text-sm hover:bg-blue-700 px-3 py-1 rounded'
+              }, 'Sign out')
+            ),
+            React.createElement('div', { className: 'flex gap-2 flex-wrap' },
+              NavLink({ label: 'Dashboard', key: 'dashboard', icon: '📊' }),
+              NavLink({ label: 'Budget', key: 'budget', icon: '💰' }),
+              NavLink({ label: 'History', key: 'history', icon: '📈' }),
+              NavLink({ label: 'Goals', key: 'goals', icon: '🎯' }),
+              NavLink({ label: 'Privacy', key: 'privacy', icon: '🔒' })
+            )
           )
         ),
         React.createElement('main', { className: 'flex-1 max-w-6xl w-full mx-auto px-4 py-6' },
-          React.createElement(Dashboard)
+          pageContent()
         ),
         React.createElement('footer', { className: 'text-center text-xs text-slate-500 py-4 border-t border-slate-200' },
           '🏡 Reay Family Budget'
