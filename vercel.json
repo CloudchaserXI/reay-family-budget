@@ -1,4 +1,10 @@
 {
   "outputDirectory": ".",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "crons": [
+    {
+      "path": "/api/ob-pull",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
