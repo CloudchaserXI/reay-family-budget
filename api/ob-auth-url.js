@@ -5,9 +5,8 @@ export default async function handler(req, res) {
 
   const clientId = process.env.TRUELAYER_CLIENT_ID;
   const redirectUri = process.env.TRUELAYER_REDIRECT_URI;
-  const baseUrl = process.env.TRUELAYER_BASE_URL;
 
-  if (!clientId || !redirectUri || !baseUrl) {
+  if (!clientId || !redirectUri) {
     return res.status(500).json({ error: 'Missing TrueLayer config' });
   }
 
@@ -19,6 +18,6 @@ export default async function handler(req, res) {
     state: Math.random().toString(36).substring(7),
   });
 
-  const authUrl = `${baseUrl}/authorize?${params.toString()}`;
+  const authUrl = `https://app.truelayer-sandbox.com/oauth/authorize?${params.toString()}`;
   res.json({ url: authUrl });
 }
