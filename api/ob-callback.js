@@ -19,13 +19,19 @@ export default async function handler(req, res) {
     if (!response.ok) return res.redirect('/?ob=error');
 
     const data = await response.json();
+    if (!data.access_token) throw new Error('No access_token in response');
+
     const token = data.access_token;
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    const parts = token.split('.');
+    if (parts.length !== 3) throw new Error('Invalid JWT format');
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    if (!payload.sub) throw new Error('No sub in JWT payload');
 
     const { default: supabase } = await import('@supabase/supabase-js');
     const sb = supabase.createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-    await sb.from('ob_connections').upsert({
+    const { error: upsertError } = await sb.from('ob_connections').upsert({
       user_id: payload.sub,
       access_token: token,
       refresh_token: data.refresh_token,
@@ -35,9 +41,11 @@ export default async function handler(req, res) {
       status: 'connected',
     });
 
+    if (upsertError) throw new Error(`Supabase error: ${upsertError.message}`);
+
     res.redirect('/?ob=connected');
   } catch (err) {
-    console.error('Error:', err.message);
-    res.redirect('/?ob=error');
+    console.error('Callback error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
   }
 }
