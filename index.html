@@ -345,6 +345,11 @@ function Budget({d}){
     await sb.from('budget_items').update({name:editVal.trim()}).eq('id',itemId);
     await refresh();setEditNameKey(null);
   };
+  const deleteItem=async itemId=>{
+    if(!confirm('Delete this item? It will be removed from all months.'))return;
+    await sb.from('budget_items').delete().eq('id',itemId);
+    await refresh();
+  };
   const saveAdhoc=async()=>{
     if(!selectedMonth||!adhocDesc.trim())return;
     await sb.from('month_adhoc_income').insert({month_id:selectedMonth.id,description:adhocDesc.trim(),amount:parseFloat(adhocAmt)||0});
@@ -465,7 +470,8 @@ function Budget({d}){
                     actual!=null?React.createElement('span',{className:'font-semibold'},gbp2(actual)):React.createElement('span',{className:'text-slate-300 text-xs group-hover:text-blue-400'},'tap to enter')
                   )
               ),
-              variance!=null&&React.createElement('div',{className:`w-24 text-right text-sm font-bold ${variance>=0?'text-emerald-500':'text-red-500'}`},`${variance>=0?'+':''}${gbp2(variance)}`)
+              variance!=null&&React.createElement('div',{className:`w-24 text-right text-sm font-bold ${variance>=0?'text-emerald-500':'text-red-500'}`},`${variance>=0?'+':''}${gbp2(variance)}`),
+              React.createElement('button',{onClick:()=>deleteItem(item.id),className:'text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-xs font-bold',title:'Delete item'},'✕')
             );
           }),
           // Additional income entries (Income category only)
