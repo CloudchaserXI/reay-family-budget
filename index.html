@@ -884,6 +884,10 @@ function Banking({d,session}){
         React.createElement('div',{className:'bg-slate-50 px-4 py-3 border-b border-slate-200'},React.createElement('p',{className:'font-semibold text-slate-800'},itemId==='unmapped'?'Unmapped':items.find(i=>i.id==itemId)?.name||'Unknown')),
         React.createElement('div',{className:'divide-y divide-slate-100'},
           ...txns.map(m=>React.createElement('div',{key:m.id,className:'p-4'},
+            React.createElement('div',{className:'flex gap-2 mb-4'},
+              React.createElement('button',{onClick:()=>{fetch('/api/ob-confirm',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({mapping_id:m.id,confirmed:true})}).then(()=>refresh());},className:'flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors'},'✓ Confirm'),
+              React.createElement('button',{onClick:()=>{fetch('/api/ob-confirm',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({mapping_id:m.id,ignored:true})}).then(()=>refresh());},className:'flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors'},'Skip')
+            ),
             React.createElement('div',{className:'flex justify-between items-start mb-3'},
               React.createElement('div',{className:'flex-1'},
                 React.createElement('p',{className:'font-medium text-slate-800'},m.tx.description),
@@ -891,15 +895,11 @@ function Banking({d,session}){
               ),
               React.createElement('p',{className:'font-bold text-slate-800 ml-3'},gbp(Math.abs(m.tx.amount)))
             ),
-            React.createElement('div',{className:'grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 pb-3 border-b border-slate-100'},
+            React.createElement('div',{className:'grid grid-cols-2 sm:grid-cols-4 gap-3 pb-3 border-b border-slate-100'},
               React.createElement('div',null,React.createElement('p',{className:'text-xs text-slate-500'},'Actual'),React.createElement('p',{className:'font-bold text-slate-800'},gbp(Math.abs(m.tx.amount)))),
               itemId!=='unmapped'?React.createElement('div',null,React.createElement('p',{className:'text-xs text-slate-500'},'Budget'),React.createElement('p',{className:'font-medium text-slate-700'},gbp(items.find(i=>i.id==itemId)?.budget_amount||0))):null,
               itemId!=='unmapped'?React.createElement('div',null,React.createElement('p',{className:'text-xs text-slate-500'},'Variance'),React.createElement('p',{className:`font-bold ${Math.abs(m.tx.amount)<=parseFloat(items.find(i=>i.id==itemId)?.budget_amount||0)?'text-emerald-600':'text-red-600'}`},gbp(parseFloat(items.find(i=>i.id==itemId)?.budget_amount||0)-Math.abs(m.tx.amount)))):null,
               React.createElement('div',null,React.createElement('p',{className:'text-xs text-slate-500'},'Confidence'),React.createElement('p',{className:`font-bold ${m.confidence>=0.9?'text-emerald-600':'text-amber-600'}`},(m.confidence*100).toFixed(0)+'%'))
-            ),
-            React.createElement('div',{className:'flex gap-2'},
-              React.createElement('button',{onClick:()=>{fetch('/api/ob-confirm',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({mapping_id:m.id,confirmed:true})}).then(()=>refresh());},className:'flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors'},'✓ Confirm'),
-              React.createElement('button',{onClick:()=>{fetch('/api/ob-confirm',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({mapping_id:m.id,ignored:true})}).then(()=>refresh());},className:'flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors'},'Skip')
             )
           ))
         )
