@@ -310,6 +310,7 @@ function Budget({d}){
   const{categories,items,months,actuals,monthBudgets,adhocList,selectedMonth,setSelectedMonth,refresh}=d;
   const[editActualKey,setEditActualKey]=useState(null);
   const[editBudgetKey,setEditBudgetKey]=useState(null);
+  const[editNameKey,setEditNameKey]=useState(null);
   const[editVal,setEditVal]=useState('');
   const[expanded,setExpanded]=useState({});
   const[addingMonth,setAddingMonth]=useState(false);
@@ -338,6 +339,11 @@ function Budget({d}){
     if(!selectedMonth)return;
     await sb.from('month_budgets').upsert({month_id:selectedMonth.id,item_id:itemId,budget_amount:parseFloat(editVal)||0},{onConflict:'month_id,item_id'});
     await refresh();setEditBudgetKey(null);
+  };
+  const saveName=async itemId=>{
+    if(!editVal.trim())return;
+    await sb.from('budget_items').update({name:editVal.trim()}).eq('id',itemId);
+    await refresh();setEditNameKey(null);
   };
   const saveAdhoc=async()=>{
     if(!selectedMonth||!adhocDesc.trim())return;
@@ -439,9 +445,9 @@ function Budget({d}){
         isOpen&&React.createElement('div',{className:'divide-y divide-slate-50'},
           ...catItems.map(item=>{
             const budget=getBudget(item.id),actual=getActual(item.id),variance=actual!=null?budget-actual:null;
-            const isEditB=editBudgetKey===item.id,isEditA=editActualKey===item.id;
+            const isEditB=editBudgetKey===item.id,isEditA=editActualKey===item.id,isEditN=editNameKey===item.id;
             return React.createElement('div',{key:item.id,className:'flex items-center px-5 py-2.5 gap-2 hover:bg-slate-50/80 group'},
-              React.createElement('div',{className:'flex-1 text-sm text-slate-700 font-medium'},item.name),
+              isEditN?React.createElement('input',{type:'text',className:'flex-1 border border-slate-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200',value:editVal,onChange:e=>setEditVal(e.target.value),onKeyDown:e=>{if(e.key==='Enter')saveName(item.id);if(e.key==='Escape')setEditNameKey(null)},autoFocus:true}):React.createElement('div',{className:'flex-1 text-sm text-slate-700 font-medium cursor-pointer hover:text-slate-900 hover:bg-slate-100 px-2 py-1 rounded',onClick:()=>{setEditNameKey(item.id);setEditVal(item.name);}},item.name),
               selectedMonth
                 ?isEditB
                   ?React.createElement('div',{className:'w-28 flex justify-end gap-1'},
