@@ -4,5 +4,5 @@
   "private": true,
   "type": "module",
   "scripts": { "build": "echo 'static site, no build needed'" },
-  "dependencies": { "@supabase/supabase-js": "^2.45.4" }
+  "dependencies": { "@supabase/supabase-js": "^2.45.4", "pg": "^8.11.3" }
 }
