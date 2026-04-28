@@ -317,6 +317,9 @@ function Budget({d}){
   const[showAddAdhoc,setShowAddAdhoc]=useState(false);
   const[adhocDesc,setAdhocDesc]=useState('');
   const[adhocAmt,setAdhocAmt]=useState('');
+  const[addingTo,setAddingTo]=useState(null);
+  const[newItemName,setNewItemName]=useState('');
+  const[newItemAmt,setNewItemAmt]=useState('');
 
   const toggle=id=>setExpanded(e=>({...e,[id]:e[id]===false?true:false}));
 
@@ -348,6 +351,13 @@ function Budget({d}){
   const deleteItem=async itemId=>{
     if(!confirm('Delete this item? It will be removed from all months.'))return;
     await sb.from('budget_items').delete().eq('id',itemId);
+    await refresh();
+  };
+  const addItem=async catId=>{
+    if(!newItemName.trim()||!selectedMonth)return;
+    const{data:newItem}=await sb.from('budget_items').insert({category_id:catId,name:newItemName.trim(),budget_amount:parseFloat(newItemAmt)||0}).select().single();
+    await sb.from('month_budgets').insert({month_id:selectedMonth.id,item_id:newItem.id,budget_amount:parseFloat(newItemAmt)||0});
+    setNewItemName('');setNewItemAmt('');setAddingTo(null);
     await refresh();
   };
   const saveAdhoc=async()=>{
@@ -474,6 +484,14 @@ function Budget({d}){
               React.createElement('button',{onClick:()=>deleteItem(item.id),className:'text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-xs font-bold',title:'Delete item'},'✕')
             );
           }),
+          selectedMonth&&(addingTo===cat.id?React.createElement('div',{className:'px-5 py-3 border-t border-slate-100 bg-slate-50 flex gap-2'},
+            React.createElement('input',{type:'text',placeholder:'Item name',className:'flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200',value:newItemName,onChange:e=>setNewItemName(e.target.value),onKeyDown:e=>{if(e.key==='Enter')addItem(cat.id);if(e.key==='Escape')setAddingTo(null);},autoFocus:true}),
+            React.createElement('input',{type:'number',step:'0.01',placeholder:'Budget',className:'w-24 border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-slate-200',value:newItemAmt,onChange:e=>setNewItemAmt(e.target.value),onKeyDown:e=>{if(e.key==='Enter')addItem(cat.id);if(e.key==='Escape')setAddingTo(null);}}),
+            React.createElement('button',{onClick:()=>addItem(cat.id),className:'bg-slate-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700'},'✓'),
+            React.createElement('button',{onClick:()=>{setAddingTo(null);setNewItemName('');setNewItemAmt('');},className:'bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-sm'},'✕')
+          ):React.createElement('div',{className:'px-5 py-3'},
+            React.createElement('button',{onClick:()=>setAddingTo(cat.id),className:'text-xs font-semibold text-slate-600 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors'},`+ Add to ${cat.name}`)
+          )),
           // Additional income entries (Income category only)
           cat.name==='Income'&&selectedMonth&&React.createElement(React.Fragment,null,
             ...adhocForMonth.map(entry=>React.createElement('div',{key:entry.id,className:'flex items-center px-5 py-2.5 gap-2 hover:bg-slate-50/80 group'},
