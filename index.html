@@ -827,7 +827,7 @@ function Privacy({onBack}){
   );
 }
 function Banking({d,session}){
-  const{items,obTransactions,obMappings,selectedMonth,refresh}=d;
+  const{items,categories,actuals,monthBudgets,obTransactions,obMappings,selectedMonth,refresh}=d;
   const[obStatus,setObStatus]=useState(null);const[connecting,setConnecting]=useState(false);const[error,setError]=useState('');const[demoMode,setDemoMode]=useState(false);
   const demoMappings=[
     {id:1,transaction_id:101,item_id:items.find(i=>i.name==='Food')?.id,confidence:0.95,confirmed:false,ignored:false},
