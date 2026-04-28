@@ -13,12 +13,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId required' });
+    }
+
     const payload = {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: redirectUri,
       scope: 'info accounts balance',
-      state: Math.random().toString(36).substring(7),
+      state: userId,
       data_use_description: 'We will use your transaction data to auto-populate your budget spending',
       provider_id: 'mock',
     };

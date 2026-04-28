@@ -1,7 +1,10 @@
 export default async function handler(req, res) {
   try {
-    const { code } = req.query;
-    if (!code) return res.redirect('/?ob=error');
+    const { code, state } = req.query;
+    if (!code || !state) return res.redirect('/?ob=error');
+
+    const userId = state;
+    if (!userId) throw new Error('Invalid state parameter');
 
     const baseUrl = process.env.TRUELAYER_BASE_URL;
     const response = await fetch(`${baseUrl}/connect/token`, {
@@ -16,27 +19,17 @@ export default async function handler(req, res) {
       }),
     });
 
-    if (!response.ok) return res.redirect('/?ob=error');
+    if (!response.ok) throw new Error('Token exchange failed');
 
     const data = await response.json();
     if (!data.access_token) throw new Error('No access_token in response');
-
-    const token = data.access_token;
-    const parts = token.split('.');
-    if (parts.length !== 3) throw new Error('Invalid JWT format');
-
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    if (!payload.sub) throw new Error('No sub in JWT payload');
-
-    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');
-    console.log('Service Role Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET (' + process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20) + '...)' : 'MISSING');
 
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     const { error: upsertError } = await sb.from('ob_connections').upsert({
-      user_id: payload.sub,
-      access_token: token,
+      user_id: userId,
+      access_token: data.access_token,
       refresh_token: data.refresh_token,
       token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
       consent_expiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -44,11 +37,11 @@ export default async function handler(req, res) {
       status: 'connected',
     });
 
-    if (upsertError) throw new Error(`Supabase error: ${upsertError.message}`);
+    if (upsertError) throw new Error(`DB error: ${upsertError.message}`);
 
     res.redirect('/?ob=connected');
   } catch (err) {
-    console.error('Callback error:', err.message, err.stack);
-    res.status(500).json({ error: err.message });
+    console.error('Callback error:', err.message);
+    res.redirect('/?ob=error');
   }
 }
