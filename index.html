@@ -669,6 +669,9 @@ function Goals({d}){
   const[form,setForm]=useState({});
   const[saving,setSaving]=useState(false);
   const[confirmDelete,setConfirmDelete]=useState(null);
+  const[showWithdraw,setShowWithdraw]=useState(false);
+  const[withdrawalAmount,setWithdrawalAmount]=useState('');
+  const[withdrawalBreakdown,setWithdrawalBreakdown]=useState(null);
 
   const totalSaved=goals.reduce((s,g)=>s+parseFloat(g.current_amount),0);
   const totalTarget=goals.reduce((s,g)=>s+parseFloat(g.target_amount),0);
@@ -693,6 +696,53 @@ function Goals({d}){
     setSaving(true);
     await sb.from('budget_goals').delete().eq('id',id);
     await refresh();setSaving(false);setConfirmDelete(null);
+  };
+
+  const calculateWithdrawal=(amount)=>{
+    if(!amount||amount<=0)return null;
+    const goalsByPriority=[...goals].sort((a,b)=>(b.priority||2)-(a.priority||2)).map(g=>({...g,available:Math.max(0,g.current_amount)}));
+    const breakdown=[];
+    let remaining=amount;
+    for(const g of goalsByPriority){
+      if(remaining<=0)break;
+      const take=Math.min(remaining,g.available);
+      if(take>0){
+        breakdown.push({...g,withdrawn:take});
+        remaining-=take;
+      }
+    }
+    return{breakdown,fulfilled:remaining<=0.01,remaining:Math.max(0,remaining)};
+  };
+
+  const handleWithdrawalClick=()=>{
+    setShowWithdraw(true);
+    setWithdrawalAmount('');
+    setWithdrawalBreakdown(null);
+  };
+
+  const handleCalculateWithdrawal=()=>{
+    const amt=parseFloat(withdrawalAmount);
+    if(!amt||amt<=0)return;
+    const calc=calculateWithdrawal(amt);
+    setWithdrawalBreakdown(calc);
+  };
+
+  const handleConfirmWithdrawal=async()=>{
+    if(!withdrawalBreakdown)return;
+    setSaving(true);
+    try{
+      for(const item of withdrawalBreakdown.breakdown){
+        const newAmount=Math.max(0,item.current_amount-item.withdrawn);
+        await sb.from('budget_goals').update({current_amount:newAmount}).eq('id',item.id);
+      }
+      await refresh();
+      setShowWithdraw(false);
+      setWithdrawalAmount('');
+      setWithdrawalBreakdown(null);
+    }catch(e){
+      console.error('Withdrawal error:',e);
+    }
+    setSaving(false);
   };
 
   const GoalForm=({onSave,label})=>React.createElement(Card,{className:'border-blue-200 fade-in'},
@@ -744,6 +794,33 @@ function Goals({d}){
         React.createElement('div',{className:'h-3 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300',style:{width:`${Math.min(overall,100)}%`}})
       ),
       React.createElement('p',{className:'text-blue-300 text-xs mt-1.5'},`${overall.toFixed(1)}% of total goal achieved`)
+    ),
+    !showWithdraw&&React.createElement('button',{onClick:handleWithdrawalClick,className:'w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium py-3 rounded-xl transition-colors text-sm'},'↓ Record Withdrawal'),
+    showWithdraw&&React.createElement(Card,{className:'border-red-200 fade-in'},
+      React.createElement('h3',{className:'font-semibold text-slate-700 mb-4'},'Record Withdrawal'),
+      React.createElement('div',{className:'space-y-3 mb-4'},
+        React.createElement('div',null,
+          React.createElement('label',{className:'block text-sm text-slate-600 mb-1'},'Withdrawal amount £'),
+          React.createElement('input',{type:'number',placeholder:'0.00',className:'w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm',value:withdrawalAmount,onChange:e=>setWithdrawalAmount(e.target.value),onKeyPress:e=>e.key==='Enter'&&!withdrawalBreakdown&&handleCalculateWithdrawal()})
+        ),
+        !withdrawalBreakdown&&React.createElement('button',{onClick:handleCalculateWithdrawal,disabled:!withdrawalAmount||withdrawalAmount<=0,className:'w-full bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white py-2 rounded-xl text-sm font-medium transition-colors'},withdrawalAmount?'Calculate':'Enter amount')
+      ),
+      withdrawalBreakdown&&React.createElement('div',{className:'space-y-3'},
+        React.createElement('p',{className:'text-sm text-slate-600 font-medium'},'Allocation (lowest priority first):'),
+        React.createElement('div',{className:'space-y-1.5 max-h-40 overflow-y-auto'},
+          withdrawalBreakdown.breakdown.map((item,idx)=>
+            React.createElement('div',{key:idx,className:'flex items-center justify-between p-2 bg-red-50 rounded-lg'},
+              React.createElement('span',{className:'text-sm'},`${item.emoji||'🎯'} ${item.name}`),
+              React.createElement('span',{className:'text-sm font-bold text-red-600'},`-${gbp(item.withdrawn)}`)
+            )
+          )
+        ),
+        withdrawalBreakdown.remaining>0.01&&React.createElement('p',{className:'text-xs text-red-600 bg-red-50 p-2 rounded-lg'},`Only £${gbp(withdrawalBreakdown.remaining)} available. Goals have ${gbp(totalSaved-withdrawalAmount)} after this withdrawal.`),
+        React.createElement('div',{className:'flex gap-2 mt-4'},
+          React.createElement('button',{onClick:handleConfirmWithdrawal,disabled:saving||!withdrawalBreakdown.fulfilled,className:'flex-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white py-2 rounded-xl text-sm font-medium transition-colors'},saving?'Processing…':'Confirm Withdrawal'),
+          React.createElement('button',{onClick:()=>{setShowWithdraw(false);setWithdrawalAmount('');setWithdrawalBreakdown(null);},className:'flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl text-sm font-medium'},'Cancel')
+        )
+      )
     ),
     showNew&&React.createElement(GoalForm,{onSave:saveNew,label:'Save Goal'}),
     goals.length===0&&!showNew&&React.createElement(Card,null,
