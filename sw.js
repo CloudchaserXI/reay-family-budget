@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reay-budget-v11';
+const CACHE_NAME = 'reay-budget-v12';
 
 // Assets to cache on install — the full app shell
 const PRECACHE = [
