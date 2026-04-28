@@ -1,57 +1,50 @@
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.slice(7);
-
   try {
-    const sb = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    // Verify token and get user
-    const { data: { user }, error: userError } = await sb.auth.admin.getUserById(token);
-    if (userError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing authorization token' });
     }
 
-    // Get connection status
-    const { data: connection, error } = await sb
+    const token = authHeader.slice(7);
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+    const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    const userId = decoded.sub;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Cannot extract user ID from token' });
+    }
+
+    const { data: connection, error: queryError } = await sb
       .from('ob_connections')
-      .select('status, consent_expiry, last_pull_at')
-      .eq('user_id', user.id)
+      .select('*')
+      .eq('user_id', userId)
       .single();
 
-    if (error || !connection) {
-      return res.json({
-        connected: false,
-        status: 'not_connected',
-        daysUntilExpiry: null,
-      });
+    if (queryError) {
+      if (queryError.code === 'PGRST116') {
+        return res.json({ connected: false });
+      }
+      throw queryError;
+    }
+
+    if (!connection) {
+      return res.json({ connected: false });
     }
 
     const expiryDate = new Date(connection.consent_expiry);
     const now = new Date();
-    const daysUntilExpiry = Math.floor((expiryDate - now) / (1000 * 60 * 60 * 24));
+    const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
 
-    res.json({
+    return res.json({
       connected: connection.status === 'connected',
-      status: connection.status,
       daysUntilExpiry,
       lastPullAt: connection.last_pull_at,
-      consentExpiry: connection.consent_expiry,
     });
   } catch (err) {
-    console.error('Status check error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Status error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 }
