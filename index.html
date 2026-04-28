@@ -866,10 +866,14 @@ function Banking({d,session}){
         React.createElement('div',{className:'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'},
           ...Object.entries(items.reduce((acc,item)=>{const actual=actuals.find(a=>a.month_id===selectedMonth?.id&&a.item_id===item.id);const budget=monthBudgets.find(mb=>mb.month_id===selectedMonth?.id&&mb.item_id===item.id);if(actual||budget){const cat=categories.find(c=>c.id===item.category_id)?.name||'Other';if(!acc[cat])acc[cat]=[];acc[cat].push({item,actual:actual?.actual_amount||0,budget:budget?.budget_amount||0});}return acc},{})).map(([cat,items])=>React.createElement('div',{key:cat,className:'bg-slate-50 p-4 rounded-lg border border-slate-200'},
             React.createElement('p',{className:'font-semibold text-slate-700 mb-3 pb-2 border-b border-slate-200'},cat),
-            React.createElement('div',{className:'space-y-2'},
-              ...items.map(({item,actual,budget})=>React.createElement('div',{key:item.id,className:'flex justify-between items-start text-sm'},
-                React.createElement('div',null,React.createElement('p',{className:'font-medium text-slate-700'},item.name),React.createElement('p',{className:'text-xs text-slate-500 mt-0.5'},gbp(actual)+' / '+gbp(budget))),
-                React.createElement('div',{className:'text-right'},React.createElement('p',{className:`font-bold text-xs ${actual<=budget?'text-emerald-600':'text-red-600'}`},budget-actual>=0?'−'+gbp(budget-actual):'+'+gbp(actual-budget)))
+            React.createElement('div',{className:'space-y-3'},
+              ...items.map(({item,actual,budget})=>React.createElement('div',{key:item.id},
+                React.createElement('p',{className:'font-medium text-slate-700 text-sm mb-1'},item.name),
+                React.createElement('div',{className:'grid grid-cols-3 gap-2 text-xs'},
+                  React.createElement('div',{className:'text-center'},React.createElement('p',{className:'text-slate-500 text-xs mb-0.5'},'Actual'),React.createElement('p',{className:'font-bold text-slate-700'},gbp(actual))),
+                  React.createElement('div',{className:'text-center'},React.createElement('p',{className:'text-slate-500 text-xs mb-0.5'},'Budget'),React.createElement('p',{className:'font-bold text-slate-700'},gbp(budget))),
+                  React.createElement('div',{className:'text-center'},React.createElement('p',{className:'text-slate-500 text-xs mb-0.5'},'Remaining'),React.createElement('p',{className:`font-bold ${actual<=budget?'text-emerald-600':'text-red-600'}`},gbp(Math.abs(budget-actual))))
+                )
               ))
             )
           ))
