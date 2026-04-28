@@ -1,129 +1,105 @@
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userId } = req.body;
-  if (!userId) {
-    return res.status(400).json({ error: 'userId required' });
-  }
-
-  const sb = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-
   try {
-    // Get user's budget categories
-    const { data: categories } = await sb
-      .from('budget_categories')
-      .select('id, name')
-      .eq('user_id', userId);
+    const { transactions, items, userId, month } = req.body;
 
-    if (!categories || categories.length === 0) {
-      return res.json({ message: 'No categories found' });
+    if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({ error: 'No transactions provided' });
     }
 
-    // Get unmapped transactions (batch of 20)
-    const { data: unmappedTxs } = await sb
-      .from('ob_transactions')
-      .select('id, description, amount')
-      .eq('user_id', userId)
-      .not('id', 'in', `(
-        SELECT transaction_id FROM ob_transaction_mappings WHERE user_id = '${userId}'
-      )`)
-      .limit(20);
-
-    if (!unmappedTxs || unmappedTxs.length === 0) {
-      return res.json({ message: 'No unmapped transactions' });
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'No budget items provided' });
     }
 
-    // Prepare prompt for Claude
-    const categoryList = categories.map((c) => c.name).join(', ');
-    const txList = unmappedTxs
-      .map((tx) => `- "${tx.description}" (£${tx.amount})`)
+    const itemList = items.map((item) => `- ${item.name} (ID: ${item.id})`).join('\n');
+
+    const txList = transactions
+      .map((tx) => `- ${tx.transaction_date}: ${tx.description} (${tx.currency} ${Math.abs(tx.amount).toFixed(2)})`)
       .join('\n');
 
-    const prompt = `Categorize these bank transactions into these categories: ${categoryList}
+    const prompt = `You are a transaction categorizer. I have bank transactions and a list of budget categories.
+For each transaction, respond with ONLY valid JSON (no markdown, no extra text).
 
-Transactions:
+Budget categories available:
+${itemList}
+
+Transactions to categorize:
 ${txList}
 
-Return JSON array with objects: { description, category, confidence (0-1) }`;
+For each transaction (in the same order), respond with this JSON structure:
+[
+  { "index": 0, "itemId": <ID or null>, "confidence": <0.0-1.0> },
+  { "index": 1, "itemId": <ID or null>, "confidence": <0.0-1.0> }
+]
 
-    // Call Anthropic API
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+Rules:
+1. If you can confidently match a transaction to a category, set itemId to that category's ID
+2. If uncertain or no match, set itemId to null
+3. Confidence 0.0-1.0: 0.90+ means auto-confirm, <0.90 requires user review
+4. Debits (negative amounts) are expenses; credits (positive) are income
+5. Return ONLY the JSON array, nothing else`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'content-type': 'application/json',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-opus-4-1-20250805',
         max_tokens: 1024,
-        system:
-          'You are a financial categorization assistant. Return only valid JSON, no markdown.',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
       }),
     });
 
-    if (!aiResponse.ok) {
-      throw new Error(`Anthropic API error: ${aiResponse.status}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Anthropic API error: ${response.status} - ${JSON.stringify(error)}`);
     }
 
-    const aiData = await aiResponse.json();
-    const rawText =
-      aiData.content && aiData.content[0] && aiData.content[0].text
-        ? aiData.content[0].text
-        : '';
+    const data = await response.json();
+    const categorizations = JSON.parse(data.content[0].text);
 
-    // Parse JSON (strip markdown if present)
-    const jsonStr = rawText
-      .trim()
-      .replace(/^```json\n?|\n?```$/g, '')
-      .trim();
-    const categorizations = JSON.parse(jsonStr);
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-    // Store categorizations
-    for (let i = 0; i < unmappedTxs.length; i++) {
-      const tx = unmappedTxs[i];
-      const cat = categorizations[i];
+    const mappings = [];
+    for (const cat of categorizations) {
+      const tx = transactions[cat.index];
+      const { error: insertError } = await sb.from('ob_transaction_mappings').upsert(
+        {
+          transaction_id: tx.id,
+          user_id: userId,
+          item_id: cat.itemId,
+          month_id: month.id,
+          confidence: cat.confidence,
+          source: 'ai',
+          confirmed: cat.confidence >= 0.9,
+        },
+        { onConflict: 'transaction_id' }
+      );
 
-      if (!cat || !cat.category) continue;
-
-      // Find category ID
-      const categoryId = categories.find(
-        (c) => c.name.toLowerCase() === cat.category.toLowerCase()
-      )?.id;
-
-      if (!categoryId) continue;
-
-      const confidence = Math.min(cat.confidence || 0.5, 1);
-      const autoConfirm = confidence >= 0.9;
-
-      await sb.from('ob_transaction_mappings').insert({
-        user_id: userId,
-        transaction_id: tx.id,
-        category_id: categoryId,
-        confidence,
-        source: 'ai',
-        confirmed: autoConfirm,
+      if (insertError) throw insertError;
+      mappings.push({
+        transactionId: tx.id,
+        itemId: cat.itemId,
+        confidence: cat.confidence,
+        autoConfirmed: cat.confidence >= 0.9,
       });
     }
 
-    res.json({
-      success: true,
-      categorized: unmappedTxs.length,
-      autoConfirmed: unmappedTxs.filter(
-        (_, i) =>
-          categorizations[i] &&
-          categorizations[i].confidence >= 0.9
-      ).length,
-    });
+    res.json({ success: true, mapped: mappings.length, autoConfirmed: mappings.filter((m) => m.autoConfirmed).length });
   } catch (err) {
-    console.error('Categorization error:', err);
+    console.error('Categorize error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }
