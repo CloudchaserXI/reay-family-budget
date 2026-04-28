@@ -24,6 +24,16 @@ export default async function handler(req, res) {
     const data = await response.json();
     if (!data.access_token) throw new Error('No access_token in response');
 
+    const accountsResponse = await fetch(`${process.env.TRUELAYER_API_URL}/data/v1/accounts`, {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+
+    let accountIds = [];
+    if (accountsResponse.ok) {
+      const accountsData = await accountsResponse.json();
+      accountIds = (accountsData.results || []).map((acc) => acc.account_id);
+    }
+
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -33,7 +43,7 @@ export default async function handler(req, res) {
       refresh_token: data.refresh_token,
       token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
       consent_expiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      account_ids: [],
+      account_ids: accountIds,
       status: 'connected',
     });
 
