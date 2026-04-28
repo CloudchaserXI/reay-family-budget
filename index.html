@@ -408,6 +408,9 @@ function Budget({d}){
   const totalIncome=items.filter(i=>categories.find(c=>c.id===i.category_id)?.name==='Income').reduce((s,i)=>s+getBudget(i.id),0)+adhocTotal;
   const totalExpenses=items.filter(i=>categories.find(c=>c.id===i.category_id)?.name!=='Income').reduce((s,i)=>s+getBudget(i.id),0);
   const surplus=totalIncome-totalExpenses;
+  const goalsFundingItem=items.find(i=>i.name==='Goals Funding');
+  const goalsFundingAmt=goalsFundingItem&&selectedMonth?getBudget(goalsFundingItem.id):0;
+  const extraAfterGoals=surplus-goalsFundingAmt;
   const startLabel=selectedMonth?.start_date?new Date(selectedMonth.start_date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):null;
   const last=months.length>0?months[months.length-1]:null;
   let nextLabel='';
@@ -432,7 +435,8 @@ function Budget({d}){
       React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Income'),React.createElement('p',{className:'text-2xl font-bold text-emerald-300'},gbp(totalIncome))),
       React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Outgoings'),React.createElement('p',{className:'text-2xl font-bold'},gbp(totalExpenses))),
       React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Surplus'),React.createElement('p',{className:`text-2xl font-bold ${surplus>=0?'text-emerald-300':'text-red-300'}`},gbp(surplus))),
-      React.createElement('div',{className:'ml-auto flex items-center'},React.createElement('div',{className:'text-right'},React.createElement('p',{className:'text-blue-300 text-xs'},'Savings Rate'),React.createElement('p',{className:'text-xl font-bold'},pct(surplus,totalIncome))))
+      React.createElement('div',null,React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Disposable Income'),React.createElement('p',{className:'text-xl font-bold'},pct(surplus,totalIncome))),
+      goalsFundingAmt>0&&React.createElement('div',{className:'ml-auto'},React.createElement('p',{className:'text-blue-300 text-xs font-semibold uppercase tracking-wide'},'Extra after Goals'),React.createElement('p',{className:`text-xl font-bold ${extraAfterGoals>=0?'text-emerald-300':'text-red-300'}`},gbp(extraAfterGoals)))
     ),
     selectedMonth&&React.createElement('div',{className:'flex items-center px-5 text-xs font-semibold text-slate-400 uppercase tracking-wide'},
       React.createElement('div',{className:'flex-1'},'Item'),
