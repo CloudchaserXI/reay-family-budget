@@ -1,55 +1,52 @@
+import { getAccessToken, gc, createSupabase } from './_gocardless.js';
+
+// GoCardless redirects the user back here after they consent at their bank:
+//   /api/ob-callback?ref=<userId>   (or ?error=... on failure)
 export default async function handler(req, res) {
   try {
-    const { code, state } = req.query;
-    if (!code || !state) return res.redirect('/?ob=error');
+    const { ref, error } = req.query;
+    if (error) {
+      console.error('Callback error from GoCardless:', error);
+      return res.redirect('/?ob=error');
+    }
+    if (!ref) return res.redirect('/?ob=error');
 
-    const userId = state;
-    if (!userId) throw new Error('Invalid state parameter');
+    const userId = String(ref);
+    const sb = await createSupabase();
 
-    const baseUrl = process.env.TRUELAYER_BASE_URL;
-    const response = await fetch(`${baseUrl}/connect/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'authorization_code',
-        code,
-        client_id: process.env.TRUELAYER_CLIENT_ID,
-        client_secret: process.env.TRUELAYER_CLIENT_SECRET,
-        redirect_uri: process.env.TRUELAYER_REDIRECT_URI,
-      }),
-    });
+    // Find the pending connection we created in ob-auth-url.
+    const { data: connection } = await sb
+      .from('ob_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
 
-    if (!response.ok) throw new Error('Token exchange failed');
-
-    const data = await response.json();
-    if (!data.access_token) throw new Error('No access_token in response');
-
-    const accountsResponse = await fetch(`${process.env.TRUELAYER_API_URL}/data/v1/accounts`, {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-
-    let accountIds = [];
-    if (accountsResponse.ok) {
-      const accountsData = await accountsResponse.json();
-      accountIds = (accountsData.results || []).map((acc) => acc.account_id);
+    if (!connection || !connection.requisition_id) {
+      throw new Error('No pending requisition found for user');
     }
 
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const access = await getAccessToken();
 
-    const { error: upsertError } = await sb.from('ob_connections').upsert({
-      user_id: userId,
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-      consent_expiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      account_ids: accountIds,
-      status: 'connected',
-    });
+    // Fetch the requisition to read the linked account IDs. status "LN" = linked.
+    const requisition = await gc(`/requisitions/${connection.requisition_id}/`, access);
+    if (!requisition.ok) {
+      throw new Error(`Requisition lookup failed: ${requisition.status} ${JSON.stringify(requisition.body)}`);
+    }
 
-    if (upsertError) throw new Error(`DB error: ${upsertError.message}`);
+    const accountIds = requisition.body.accounts || [];
+    const linked = requisition.body.status === 'LN' && accountIds.length > 0;
 
-    res.redirect('/?ob=connected');
+    const { error: updateError } = await sb
+      .from('ob_connections')
+      .update({
+        account_ids: accountIds,
+        status: linked ? 'connected' : 'pending',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+    if (updateError) throw new Error(`DB error: ${updateError.message}`);
+
+    res.redirect(linked ? '/?ob=connected' : '/?ob=error');
   } catch (err) {
     console.error('Callback error:', err.message);
     res.redirect('/?ob=error');

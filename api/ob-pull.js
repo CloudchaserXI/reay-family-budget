@@ -1,20 +1,27 @@
+import { appUrl, getAccessToken, gc, createSupabase } from './_gocardless.js';
+
+// Pulls transactions from GoCardless for every connected user, stores them,
+// triggers AI categorisation, and rolls confirmed amounts into month_actuals.
+// Called by the daily Vercel cron (x-cron-secret) or on-demand with { userId }.
 export default async function handler(req, res) {
   try {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET && req.body?.userId === undefined) {
+    // Vercel Cron calls this with GET + "Authorization: Bearer <CRON_SECRET>".
+    // On-demand calls pass { userId } (POST) or ?userId= (GET).
+    const cronSecret = process.env.CRON_SECRET;
+    const isCron =
+      (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) ||
+      (cronSecret && req.headers['x-cron-secret'] === cronSecret);
+    const onDemandUserId = req.body?.userId || req.query?.userId;
+    if (!isCron && !onDemandUserId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const sb = await createSupabase();
+    const access = await getAccessToken();
 
     let userIds = [];
-
-    if (req.body?.userId) {
-      userIds = [req.body.userId];
+    if (onDemandUserId) {
+      userIds = [onDemandUserId];
     } else {
       const { data: connections } = await sb
         .from('ob_connections')
@@ -36,55 +43,60 @@ export default async function handler(req, res) {
       if (!connection) continue;
 
       const accountIds = connection.account_ids || [];
-      const lastPullAt = connection.last_pull_at ? new Date(connection.last_pull_at) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      // GoCardless date_from expects a plain YYYY-MM-DD date.
+      const fromDate = (connection.last_pull_at
+        ? new Date(connection.last_pull_at)
+        : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+      )
+        .toISOString()
+        .split('T')[0];
 
       let allTransactions = [];
+      let accessExpired = false;
 
       for (const accountId of accountIds) {
-        try {
-          const txResponse = await fetch(
-            `${process.env.TRUELAYER_API_URL}/data/v1/accounts/${accountId}/transactions?from=${lastPullAt.toISOString()}`,
-            {
-              headers: { Authorization: `Bearer ${connection.access_token}` },
-            }
-          );
+        const r = await gc(`/accounts/${accountId}/transactions/?date_from=${fromDate}`, access);
 
-          if (txResponse.status === 401) {
-            await sb
-              .from('ob_connections')
-              .update({ status: 'expired' })
-              .eq('user_id', userId);
-            console.log(`Token expired for user ${userId}`);
+        if (!r.ok) {
+          const summary = JSON.stringify(r.body || {});
+          // Consent/access expired -> flag the connection for re-consent.
+          if (r.status === 401 || /expired|invalid|EUA/i.test(summary)) {
+            accessExpired = true;
+            console.log(`Access expired for user ${userId} account ${accountId}`);
             break;
           }
-
-          if (!txResponse.ok) {
-            console.error(`Failed to fetch transactions for account ${accountId}:`, await txResponse.text());
-            continue;
-          }
-
-          const txData = await txResponse.json();
-          const transactions = txData.results || [];
-
-          allTransactions.push(
-            ...transactions.map((tx) => ({
-              user_id: userId,
-              provider_transaction_id: tx.transaction_id,
-              account_id: accountId,
-              transaction_date: tx.timestamp.split('T')[0],
-              description: tx.description,
-              amount: parseFloat(tx.amount),
-              currency: tx.currency,
-            }))
-          );
-        } catch (err) {
-          console.error(`Error fetching transactions for account ${accountId}:`, err.message);
+          // 429 = rate limited (free tier allows a few pulls/account/day). Skip.
+          console.error(`Failed to fetch transactions for ${accountId}: ${r.status} ${summary}`);
+          continue;
         }
+
+        const booked = r.body?.transactions?.booked || [];
+        allTransactions.push(
+          ...booked.map((tx) => ({
+            user_id: userId,
+            provider_transaction_id: tx.transactionId || tx.internalTransactionId,
+            account_id: accountId,
+            transaction_date: (tx.bookingDate || tx.valueDate || '').split('T')[0],
+            description:
+              tx.remittanceInformationUnstructured ||
+              (Array.isArray(tx.remittanceInformationUnstructuredArray)
+                ? tx.remittanceInformationUnstructuredArray.join(' ')
+                : '') ||
+              tx.creditorName ||
+              tx.debtorName ||
+              tx.additionalInformation ||
+              'Unknown',
+            amount: parseFloat(tx.transactionAmount?.amount),
+            currency: tx.transactionAmount?.currency || 'GBP',
+          }))
+        );
       }
 
-      if (allTransactions.length === 0) {
-        continue;
+      if (accessExpired) {
+        await sb.from('ob_connections').update({ status: 'expired' }).eq('user_id', userId);
       }
+
+      if (allTransactions.length === 0) continue;
 
       const { error: upsertError, data: savedTransactions } = await sb
         .from('ob_transactions')
@@ -95,18 +107,16 @@ export default async function handler(req, res) {
         console.error('Error saving transactions:', upsertError);
         continue;
       }
-
       totalPulled += savedTransactions?.length || 0;
 
+      // Find transactions that have no mapping yet, ready for AI categorisation.
       const { data: unmappedTxs } = await sb
         .from('ob_transactions')
         .select('id, description, amount, currency, transaction_date')
         .eq('user_id', userId)
         .not('id', 'in', `(select transaction_id from ob_transaction_mappings where user_id='${userId}')`);
 
-      if (!unmappedTxs || unmappedTxs.length === 0) {
-        continue;
-      }
+      if (!unmappedTxs || unmappedTxs.length === 0) continue;
 
       const { data: items } = await sb.from('budget_items').select('id, name');
       const { data: currentMonth } = await sb
@@ -120,32 +130,20 @@ export default async function handler(req, res) {
 
       for (let i = 0; i < unmappedTxs.length; i += 20) {
         const batch = unmappedTxs.slice(i, i + 20);
-        const batchWithIds = batch.map((tx) => ({
-          ...tx,
-          id: tx.id,
-        }));
-
         try {
-          const catResponse = await fetch(`${process.env.VERCEL_URL || 'https://reay-family-budget.vercel.app'}/api/ob-categorise`, {
+          const catResponse = await fetch(`${appUrl()}/api/ob-categorise`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              transactions: batchWithIds,
-              items,
-              userId,
-              month: currentMonth,
-            }),
+            body: JSON.stringify({ transactions: batch, items, userId, month: currentMonth }),
           });
-
           const catData = await catResponse.json();
-          if (catResponse.ok) {
-            totalCategorized += catData.autoConfirmed || 0;
-          }
+          if (catResponse.ok) totalCategorized += catData.autoConfirmed || 0;
         } catch (err) {
           console.error('Error categorizing batch:', err.message);
         }
       }
 
+      // Roll confirmed (auto or manual) mappings into the monthly actuals.
       const { data: confirmedMappings } = await sb
         .from('ob_transaction_mappings')
         .select('transaction_id, item_id, month_id')
@@ -154,28 +152,26 @@ export default async function handler(req, res) {
         .is('ignored', false);
 
       for (const mapping of confirmedMappings || []) {
+        if (!mapping.item_id) continue;
         const { data: transaction } = await sb
           .from('ob_transactions')
-          .select('amount, transaction_date')
+          .select('amount')
           .eq('id', mapping.transaction_id)
           .single();
-
         if (!transaction) continue;
 
         const amount = Math.abs(transaction.amount);
         const { data: existing } = await sb
           .from('month_actuals')
-          .select('*')
+          .select('amount')
           .eq('month_id', mapping.month_id)
           .eq('item_id', mapping.item_id)
           .single();
 
-        const currentAmount = existing?.amount || 0;
-
         await sb.from('month_actuals').upsert({
           month_id: mapping.month_id,
           item_id: mapping.item_id,
-          amount: currentAmount + amount,
+          amount: (existing?.amount || 0) + amount,
           updated_at: new Date().toISOString(),
         });
       }
@@ -186,12 +182,7 @@ export default async function handler(req, res) {
         .eq('user_id', userId);
     }
 
-    res.json({
-      success: true,
-      usersProcessed: userIds.length,
-      totalPulled,
-      totalCategorized,
-    });
+    res.json({ success: true, usersProcessed: userIds.length, totalPulled, totalCategorized });
   } catch (err) {
     console.error('Pull error:', err.message);
     res.status(500).json({ error: err.message });

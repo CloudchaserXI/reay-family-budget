@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(vercel --prod --yes)"
+      "Bash(vercel --prod --yes)",
+      "PowerShell(git add -A)"
     ]
   }
 }

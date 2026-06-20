@@ -905,7 +905,7 @@ function Privacy({onBack}){
 }
 function Banking({d,session}){
   const{items,categories,actuals,monthBudgets,obTransactions,obMappings,selectedMonth,refresh}=d;
-  const[obStatus,setObStatus]=useState(null);const[connecting,setConnecting]=useState(false);const[error,setError]=useState('');const[demoMode,setDemoMode]=useState(false);
+  const[obStatus,setObStatus]=useState(null);const[connecting,setConnecting]=useState(false);const[error,setError]=useState('');const[demoMode,setDemoMode]=useState(false);const[institutions,setInstitutions]=useState([]);const[selectedBank,setSelectedBank]=useState('');
   const demoMappings=[
     {id:1,transaction_id:101,item_id:items.find(i=>i.name==='Food')?.id,confidence:0.95,confirmed:false,ignored:false},
     {id:2,transaction_id:102,item_id:items.find(i=>i.name==='Petrol')?.id,confidence:0.88,confirmed:false,ignored:false},
@@ -919,7 +919,8 @@ function Banking({d,session}){
   const txnsToUse=demoMode?demoTxns:obTransactions;
   const mapsToUse=demoMode?demoMappings:obMappings;
   useEffect(()=>{if(!session?.access_token)return;const fetchStatus=async()=>{try{const res=await fetch('/api/ob-status',{headers:{Authorization:'Bearer '+session.access_token}});const data=await res.json();setObStatus(data);}catch(err){console.error('Fetch status error:',err);}};fetchStatus();},[session?.access_token]);
-  const handleConnect=async()=>{if(!session?.user?.id){setError('Not authenticated');return;}setConnecting(true);setError('');try{const res=await fetch(`/api/ob-auth-url?userId=${encodeURIComponent(session.user.id)}`);const data=await res.json();if(!res.ok){throw new Error(data.error||`API error: ${res.status}`);}const{url}=data;if(!url)throw new Error('No auth URL returned');window.location.href=url;}catch(err){console.error('Connect error:',err);setError('Failed to connect: '+err.message);setConnecting(false);}};
+  useEffect(()=>{const fetchInstitutions=async()=>{try{const res=await fetch('/api/ob-institutions?country=gb');const data=await res.json();if(res.ok&&Array.isArray(data.institutions))setInstitutions(data.institutions);}catch(err){console.error('Fetch institutions error:',err);}};fetchInstitutions();},[]);
+  const handleConnect=async()=>{if(!session?.user?.id){setError('Not authenticated');return;}if(!selectedBank){setError('Please choose your bank first');return;}setConnecting(true);setError('');try{const res=await fetch(`/api/ob-auth-url?userId=${encodeURIComponent(session.user.id)}&institution=${encodeURIComponent(selectedBank)}`);const data=await res.json();if(!res.ok){throw new Error(data.error||`API error: ${res.status}`);}const{url}=data;if(!url)throw new Error('No auth URL returned');window.location.href=url;}catch(err){console.error('Connect error:',err);setError('Failed to connect: '+err.message);setConnecting(false);}};
   const pendingMappings=mapsToUse.filter(m=>!m.confirmed&&!m.ignored);
   const confirmedTxns=mapsToUse.filter(m=>m.confirmed).map(m=>({...m,tx:txnsToUse.find(t=>t.id===m.transaction_id)})).filter(m=>m.tx);
   const groupByItem=txns=>txns.reduce((acc,t)=>{const key=t.item_id||'unmapped';if(!acc[key])acc[key]=[];acc[key].push(t);return acc},{});
@@ -1003,7 +1004,12 @@ function Banking({d,session}){
       )
     ):React.createElement('div',{className:'bg-slate-50 border border-slate-200 p-6 rounded-lg text-center'},
       React.createElement('p',{className:'text-slate-600 mb-4'},'Connect your UK bank account to auto-populate spending data.'),
-      React.createElement('button',{onClick:handleConnect,disabled:connecting,className:'bg-navy-800 hover:bg-navy-900 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium transition-colors'},connecting?'Connecting...':'Connect Bank')
+      React.createElement('select',{value:selectedBank,onChange:e=>setSelectedBank(e.target.value),className:'border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-700 w-full max-w-sm mx-auto mb-3 block'},
+        React.createElement('option',{value:''},institutions.length?'Choose your bank…':'Loading banks…'),
+        institutions.map(b=>React.createElement('option',{key:b.id,value:b.id},b.name))
+      ),
+      React.createElement('button',{onClick:handleConnect,disabled:connecting||!selectedBank,className:'bg-navy-800 hover:bg-navy-900 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium transition-colors'},connecting?'Connecting...':'Connect Bank'),
+      error?React.createElement('p',{className:'text-red-600 text-sm mt-3'},error):null
     )
   );
 }
