@@ -1,6 +1,6 @@
-import { getAccessToken, gc, createSupabase } from './_gocardless.js';
+import { eb, createSupabase } from './_enablebanking.js';
 
-// Removes the user's bank connection and revokes the GoCardless requisition.
+// Removes the user's bank connection and revokes the Enable Banking session.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -21,17 +21,16 @@ export default async function handler(req, res) {
 
     const { data: connection } = await sb
       .from('ob_connections')
-      .select('requisition_id')
+      .select('session_id')
       .eq('user_id', userId)
       .single();
 
-    // Best-effort revoke at GoCardless; never block local disconnect on it.
-    if (connection?.requisition_id) {
+    // Best-effort revoke at Enable Banking; never block local disconnect on it.
+    if (connection?.session_id) {
       try {
-        const access = await getAccessToken();
-        await gc(`/requisitions/${connection.requisition_id}/`, access, { method: 'DELETE' });
+        await eb(`/sessions/${connection.session_id}`, { method: 'DELETE' });
       } catch (err) {
-        console.warn('GoCardless requisition revoke failed:', err.message);
+        console.warn('Enable Banking session revoke failed:', err.message);
       }
     }
 

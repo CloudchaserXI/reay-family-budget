@@ -1,30 +1,38 @@
-import { getAccessToken, gc } from './_gocardless.js';
+import { eb } from './_enablebanking.js';
 
-// Lists banks available for connection in a country (default GB), so the
-// front-end can show a picker. GET /api/ob-institutions?country=gb
-// Returns public bank metadata only (no secrets), so no auth required.
+// Lists banks (ASPSPs) available for connection in a country (default GB), so
+// the front-end can show a picker. GET /api/ob-institutions?country=gb
+// Returns public bank metadata only (no secrets).
+//
+// Enable Banking identifies a bank by its `name` (+ country) rather than an id,
+// so we use the name as the picker value. The front-end passes it back as
+// `institution`, which ob-auth-url uses as aspsp.name.
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const country = (req.query.country || 'gb').toLowerCase();
-    const access = await getAccessToken();
-    const r = await gc(`/institutions/?country=${country}`, access);
+    const country = (req.query.country || 'GB').toUpperCase();
+    const r = await eb(`/aspsps?country=${country}`, { method: 'GET' });
 
     if (!r.ok) {
-      throw new Error(`Institutions lookup failed: ${r.status} ${JSON.stringify(r.body)}`);
+      throw new Error(`ASPSP lookup failed: ${r.status} ${JSON.stringify(r.body)}`);
     }
 
-    // GoCardless sandbox bank for end-to-end testing (use test credentials).
-    const sandbox = { id: 'SANDBOXFINANCE_SFIN0000', name: '🧪 Sandbox Finance (test)', logo: null };
-
-    const banks = (r.body || []).map((i) => ({ id: i.id, name: i.name, logo: i.logo }));
+    // A bank can appear multiple times (different auth methods / psu types);
+    // dedupe by name so the picker shows each bank once.
+    const seen = new Set();
+    const banks = [];
+    for (const a of r.body?.aspsps || []) {
+      if (!a?.name || seen.has(a.name)) continue;
+      seen.add(a.name);
+      banks.push({ id: a.name, name: a.name, logo: a.logo || null, country: a.country });
+    }
     banks.sort((a, b) => a.name.localeCompare(b.name));
 
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate');
-    res.json({ institutions: [sandbox, ...banks] });
+    res.json({ institutions: banks });
   } catch (err) {
     console.error('Institutions error:', err.message);
     res.status(500).json({ error: err.message });

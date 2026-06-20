@@ -1,48 +1,48 @@
-import { getAccessToken, gc, createSupabase } from './_gocardless.js';
+import { eb, createSupabase } from './_enablebanking.js';
 
-// GoCardless redirects the user back here after they consent at their bank:
-//   /api/ob-callback?ref=<userId>   (or ?error=... on failure)
+// Enable Banking redirects the user back here after they consent at their bank:
+//   /api/ob-callback?code=<code>&state=<userId>   (or ?error=... on failure)
 export default async function handler(req, res) {
   try {
-    const { ref, error } = req.query;
+    const { code, state, error } = req.query;
     if (error) {
-      console.error('Callback error from GoCardless:', error);
+      console.error('Callback error from Enable Banking:', error);
       return res.redirect('/?ob=error');
     }
-    if (!ref) return res.redirect('/?ob=error');
+    if (!code || !state) return res.redirect('/?ob=error');
 
-    const userId = String(ref);
+    const userId = String(state);
     const sb = await createSupabase();
 
-    // Find the pending connection we created in ob-auth-url.
-    const { data: connection } = await sb
-      .from('ob_connections')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (!connection || !connection.requisition_id) {
-      throw new Error('No pending requisition found for user');
+    // Exchange the one-time code for a session listing the linked accounts.
+    const session = await eb('/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+    if (!session.ok || !session.body?.session_id) {
+      throw new Error(`Session creation failed: ${session.status} ${JSON.stringify(session.body)}`);
     }
 
-    const access = await getAccessToken();
+    // `accounts` may be uid strings or objects depending on the bank; normalise
+    // to the account UID used by GET /accounts/{uid}/transactions.
+    const accountIds = (session.body.accounts || [])
+      .map((a) => (typeof a === 'string' ? a : a.uid || a.account_id || a.identification_hash))
+      .filter(Boolean);
 
-    // Fetch the requisition to read the linked account IDs. status "LN" = linked.
-    const requisition = await gc(`/requisitions/${connection.requisition_id}/`, access);
-    if (!requisition.ok) {
-      throw new Error(`Requisition lookup failed: ${requisition.status} ${JSON.stringify(requisition.body)}`);
-    }
+    const validUntil = session.body.access?.valid_until || null;
+    const linked = accountIds.length > 0;
 
-    const accountIds = requisition.body.accounts || [];
-    const linked = requisition.body.status === 'LN' && accountIds.length > 0;
+    const update = {
+      session_id: session.body.session_id,
+      account_ids: accountIds,
+      status: linked ? 'connected' : 'pending',
+      updated_at: new Date().toISOString(),
+    };
+    if (validUntil) update.consent_expiry = validUntil;
 
     const { error: updateError } = await sb
       .from('ob_connections')
-      .update({
-        account_ids: accountIds,
-        status: linked ? 'connected' : 'pending',
-        updated_at: new Date().toISOString(),
-      })
+      .update(update)
       .eq('user_id', userId);
     if (updateError) throw new Error(`DB error: ${updateError.message}`);
 

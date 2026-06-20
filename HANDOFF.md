@@ -1,42 +1,36 @@
-# Handoff — Open Banking migration (TrueLayer → GoCardless)
+# Handoff — Open Banking on Enable Banking
 
-Paste-ready brief for Claude Code in VSCode to finish and deploy.
+## Status: code complete + deployed; needs Enable Banking signup + env vars
 
-## Status: code complete locally, needs commit + push + env vars
+The open banking integration has been migrated **TrueLayer → GoCardless → Enable Banking**.
 
-The open banking integration was migrated from TrueLayer (never worked — sandbox-only, no live access) to **GoCardless Bank Account Data** (free, works for individuals). All code changes are already written in this repo. Supabase backend was auto-paused and has been restored.
+- **TrueLayer** never worked (sandbox-only, no live access for individuals).
+- **GoCardless Bank Account Data** was built and deployed, then turned out to be a dead end: GoCardless **closed Bank Account Data to new signups in 2025** (no waitlist, no reopening), so a new account can't be created.
+- **Enable Banking** is the replacement: open self-serve signup, free tier for personal use, covers **Halifax** (Jarryd's bank) and 2,500+ UK/EU banks.
 
-## Files already changed (just commit them)
-- `api/_gocardless.js` — NEW shared helper (token + API calls; underscore = not a route)
-- `api/ob-auth-url.js` — rewritten: creates GoCardless requisition (consent link)
-- `api/ob-callback.js` — rewritten: handles `?ref=` redirect, stores linked accounts
-- `api/ob-pull.js` — rewritten: pulls transactions; now works on the daily cron (GET + Bearer)
-- `api/ob-disconnect.js` — updated: revokes the requisition at GoCardless
-- `api/ob-institutions.js` — NEW: lists UK banks for the connect dropdown
-- `index.html` — bank-picker dropdown added to Banking tab; connect passes chosen bank
-- `OPEN_BANKING_SETUP.md` — full setup guide
+All Enable Banking code is committed and live on `master` (Vercel auto-deploys). The remaining work is Jarryd's: create a free Enable Banking app and add env vars.
 
-## DB migration — ALREADY APPLIED to Supabase (do not re-run)
-`ob_transactions.date` → `transaction_date`; added `requisition_id` + `institution_id` to `ob_connections`; made TrueLayer token columns nullable. (Migration `gocardless_open_banking_migration` is live.)
+## What's in the repo now
+- `api/_enablebanking.js` — NEW shared helper. Signs the RS256 JWT (Application ID = `kid`, private key signs it), makes authed calls, Supabase client. Underscore = not a route.
+- `api/ob-institutions.js` — lists ASPSPs (`GET /aspsps?country=GB`); the bank's **name** is the picker value.
+- `api/ob-auth-url.js` — starts authorization (`POST /auth`), returns the consent URL; `state` carries the userId.
+- `api/ob-callback.js` — handles `?code=&state=`, exchanges via `POST /sessions`, stores account UIDs + `session_id`.
+- `api/ob-pull.js` — pulls transactions (`GET /accounts/{uid}/transactions`, paginated); daily cron + on-demand.
+- `api/ob-disconnect.js` — deletes the session (`DELETE /sessions/{id}`).
+- `api/_gocardless.js` — REMOVED.
+- `index.html` — unchanged; existing picker already passes the chosen bank.
+- `OPEN_BANKING_SETUP.md` — full setup guide (do this).
 
-## What Claude Code should do
-1. Review the diff, then commit and push to `master` (Vercel auto-deploys):
-   ```
-   git add -A && git commit -m "Migrate open banking from TrueLayer to GoCardless Bank Account Data" && git push
-   ```
-2. That's the only code action. No build step (CDN React).
+## DB migration — ALREADY APPLIED (do not re-run)
+Migration `enablebanking_open_banking_migration` is live on Supabase: added `session_id` + `authorization_id` to `ob_connections`, made `token_expiry` nullable, defaulted `account_ids` to `{}`. (`ob_transactions.transaction_date` was already in place from the prior migration.)
 
-## What only Jarryd can do (GoCardless = his account)
-Add these in Vercel → reay-family-budget → Settings → Environment Variables (Production):
-- `GOCARDLESS_SECRET_ID`, `GOCARDLESS_SECRET_KEY` — from https://bankaccountdata.gocardless.com (free signup → User Secrets)
-- `CRON_SECRET` — any long random string (secures the daily pull)
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Project Settings → API → service_role key
-- `SUPABASE_URL` — `https://pajlrdnhldmixcxbfqis.supabase.co`
-- `ANTHROPIC_API_KEY` — optional, enables AI auto-categorisation
-
-## Test after deploy
-Banking tab → pick "🧪 Sandbox Finance (test)" → Connect → approve → then POST `/api/ob-pull` with `{"userId":"<supabase-user-id>"}` to fetch fake transactions. Once that works, reconnect with the real bank. Consent lasts 90 days (UK rule); daily 6am cron pulls automatically.
+## What Jarryd needs to do (see OPEN_BANKING_SETUP.md for detail)
+1. Sign up free at **https://enablebanking.com**, create an application (Restricted Production for own-account live access), **download the private key**, note the **Application ID**, and register the redirect URL `https://reay-family-budget.vercel.app/api/ob-callback`.
+2. Add env vars in Vercel (Production): `ENABLEBANKING_APP_ID`, `ENABLEBANKING_PRIVATE_KEY`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `ANTHROPIC_API_KEY`.
+3. Redeploy (or push any commit).
+4. Banking tab → pick **Halifax** → approve read-only access → transactions flow in (daily 6am cron, or trigger `POST /api/ob-pull` with `{"userId":"<supabase-user-id>"}`).
 
 ## Known follow-ups (optional)
-- `api/ob-categorise.js` uses model `claude-opus-4-1-20250805` — update if it errors as unknown.
-- `ob-pull` trusts an on-demand `userId` (carried over from original) — tighten to verify the Supabase JWT if access ever widens.
+- `api/ob-categorise.js` references a Claude model string — update if it errors as unknown.
+- `ob-pull` trusts an on-demand `userId` — tighten to verify the Supabase JWT if access ever widens.
+- The Enable Banking account-UID and transaction field handling is defensive (handles string-or-object accounts, multiple date/description fields). If a real Halifax pull shows odd descriptions or missing IDs, check the raw shape in the Vercel logs and adjust the mapping in `api/ob-pull.js`.

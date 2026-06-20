@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(vercel --prod --yes)",
-      "PowerShell(git add -A)"
+      "PowerShell(git add -A)",
+      "PowerShell(git push origin master)",
+      "WebFetch(domain:bankaccountdata.gocardless.com)",
+      "mcp__claude_ai_Supabase__list_tables",
+      "WebFetch(domain:enablebanking.com)",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "PowerShell(Remove-Item \"e:\\\\Vaab Coding\\\\Budget Tool\\\\api\\\\_gocardless.js\" -Force; if \\(-not \\(Test-Path \"e:\\\\Vaab Coding\\\\Budget Tool\\\\api\\\\_gocardless.js\"\\)\\) { \"deleted\" })",
+      "PowerShell(node \"e:\\\\Vaab Coding\\\\Budget Tool\\\\_jwt_test.mjs\")"
     ]
   }
 }
